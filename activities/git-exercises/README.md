@@ -1,8 +1,8 @@
 # Git Exercises
 
 **Course:** CCC181  
-**Student Name:** <Last Name>, <First Name>  
-**Student ID:** <ID Number Without Hyphen>  
+**Student Name:** Adeva, Calvyn Kent
+**Student ID:** 20240064
 
 ## Activity Description
 
@@ -16,9 +16,9 @@ My Git configuration uses my student ID number without the hyphen, as instructed
 
 | Exercise No. | Exercise Title | Screenshot File |
 |---|---|---|
-| 01 | <Exercise Title> | `<lastname>_<firstname>_01.png` |
-| 02 | <Exercise Title> | `<lastname>_<firstname>_02.png` |
-| 03 | <Exercise Title> | `<lastname>_<firstname>_03.png` |
+| 01 | <Exercise Title> | `Adeva_CalvynKent_01.png` |
+| 02 | <Exercise Title> | `Adeva_CalvynKent_02.png` |
+| 03 | <Exercise Title> | `Adeva_CalvynKent_03.png` |
 
 > Add, remove, or update rows based on the exercises you completed.
 
