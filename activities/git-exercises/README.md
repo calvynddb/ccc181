@@ -17,7 +17,7 @@ My Git configuration uses my student ID number without the hyphen, as instructed
 | Exercise No. | Exercise Title | Screenshot File |
 |---|---|---|
 | 01 | master | ![exercise_1.png](Adeva_CalvynKent_01.png) |
-| 02 | commit-one-file | ![exercise_2.png](CAdeva_CalvynKent_02.png) |
+| 02 | commit-one-file | ![exercise_2.png](Adeva_CalvynKent_02.png) |
 | 03 | commit-one-file-staged | ![exercise_3.png](Adeva_CalvynKent_03.png) |
 | 04 | ignore-them | ![exercise_4.png](Adeva_CalvynKent_04.png) |
 | 05 | chase-branch | ![exercise_5.png](Adeva_CalvynKent_05.png) |
