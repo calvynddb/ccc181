@@ -31,7 +31,7 @@ My Git configuration uses my student ID number without the hyphen, as instructed
 | 13 | fix-old-typo | ![exercise_13.png](Adeva_CalvynKent_13.png) |
 | 14 | commit-lost | ![exercise_14.png](Adeva_CalvynKent_14.png) |
 | 15 | split-commit | ![exercise_15.png](Adeva_CalvynKent_15.png) |
-| 16 | too-many-commits | ![exercise_16.png](CAdeva_CalvynKent_16.png) |
+| 16 | too-many-commits | ![exercise_16.png](Adeva_CalvynKent_16.png) |
 | 17 | executable | ![exercise_17.png](Adeva_CalvynKent_17.png) |
 | 18 | commit-parts | ![exercise_18.png](Adeva_CalvynKent_18.png) |
 | 19 | pick-your-features | ![exercise_19.png](Adeva_CalvynKent_19.png) |
