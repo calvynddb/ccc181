@@ -2,10 +2,62 @@
 {% block title %}Join the queue · Mito{% endblock %}
 
 {% block content %}
-<section class="row justify-content-center">
-  <div class="col-12 col-md-8 col-lg-6">
-    <h1 class="h2 fw-bold">Join the queue</h1>
-    <p class="text-secondary">The Mito join form is coming in the next step.</p>
+<section>
+  <header class="d-flex flex-wrap justify-content-between align-items-end gap-3 section-rule mb-4 mb-lg-5">
+    <div>
+      <p class="eyebrow mb-2">Arena · Tibanga</p>
+      <h1 class="display-5 fw-bold mb-1">Join the queue</h1>
+      <p class="text-secondary mb-0">Get in line for one PC session.</p>
+    </div>
+    <p class="small text-secondary mb-1">Updated <strong class="text-dark">{{ updated_at.strftime("%I:%M %p") }}</strong></p>
+  </header>
+
+  <div class="row g-4 g-lg-5">
+    <aside class="col-12 col-lg-5">
+      <section class="availability-card p-4 p-lg-5 mb-3" aria-labelledby="availability-title">
+        <p class="eyebrow mb-3">PC availability</p>
+        <h2 id="availability-title" class="display-1 fw-bold font-mono mb-2">{{ open_pcs }}</h2>
+        <p class="h5 fw-semibold mb-0">of {{ station_count }} PCs open</p>
+      </section>
+      <div class="surface-card p-4">
+        <h2 class="eyebrow text-dark mb-2">How it works</h2>
+        <p class="mb-0 text-secondary">Check open PCs before heading over. Staff update availability, assign a PC, and call tickets in order.</p>
+      </div>
+    </aside>
+
+    <div class="col-12 col-lg-7">
+      <div class="border-bottom border-warm pb-2 mb-4">
+        <h2 class="h5 fw-bold mb-0">Your ticket details</h2>
+      </div>
+      <form method="post" action="{{ url_for('join') }}" novalidate id="join-form">
+          <div class="mb-3">
+            <label for="nickname" class="form-label fw-semibold">Nickname</label>
+            <input id="nickname" name="nickname" type="text" autocomplete="nickname"
+                   maxlength="24" required
+                   class="form-control form-control-lg {% if errors.nickname %}is-invalid{% endif %}"
+                   value="{{ form.get('nickname', '') }}"
+                   {% if errors.nickname %}aria-describedby="nickname-error"{% endif %}>
+            {% if errors.nickname %}
+              <div id="nickname-error" class="invalid-feedback">{{ errors.nickname }}</div>
+            {% endif %}
+          </div>
+
+          <div class="mb-4">
+            <label for="phone" class="form-label fw-semibold">Phone number <span class="text-secondary fw-normal">(optional)</span></label>
+            <input id="phone" name="phone" type="tel" inputmode="tel" autocomplete="tel"
+                   class="form-control form-control-lg {% if errors.phone %}is-invalid{% endif %}"
+                   value="{{ form.get('phone', '') }}"
+                   aria-describedby="phone-hint{% if errors.phone %} phone-error{% endif %}">
+            <div id="phone-hint" class="form-text">Only used if staff need to contact you about your place.</div>
+            {% if errors.phone %}
+              <div id="phone-error" class="invalid-feedback">{{ errors.phone }}</div>
+            {% endif %}
+          </div>
+
+        <p class="small text-secondary mb-4"><span class="fw-semibold text-dark">Service:</span> PC session · one player</p>
+        <button class="btn btn-primary btn-lg w-100 py-3" type="submit">Join the queue</button>
+      </form>
+    </div>
   </div>
 </section>
 {% endblock %}
