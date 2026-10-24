@@ -1,14 +1,32 @@
 {% extends "base.html" %}
 
-{% block content %}
-  <p>Hello, {{ name }}!</p>
+{% block title %}Mito · Tibanga PC queue{% endblock %}
 
-  <h2>Tickets in the queue</h2>
-  <ul class="tickets">
-    {% for t in tickets %}
-      <li><a href="{{ url_for('ticket', ticket_id=t.number) }}">#{{ t.number }}</a></li>
-    {% else %}
-      <li>The queue is empty.</li>
-    {% endfor %}
-  </ul>
+{% block content %}
+<section class="row align-items-center g-4 g-lg-5 py-4 py-lg-5">
+  <div class="col-12 col-lg-7">
+    <p class="eyebrow mb-3">Arena · Tibanga</p>
+    <h1 class="display-3 fw-bold mb-4">Your place in line, made clear.</h1>
+    <p class="lead text-secondary mb-4">Check PC availability, join as one player, and follow your ticket while staff manage the stations.</p>
+    <a class="btn btn-primary btn-lg px-5 py-3" href="{{ url_for('join_form') }}">Join the queue</a>
+    <p class="small text-secondary mt-3 mb-0">Staff assign each PC and call the next ticket.</p>
+  </div>
+  <aside class="col-12 col-lg-5">
+    <div class="availability-card p-4 p-lg-5">
+      <p class="eyebrow mb-4">A simpler queue for Arena</p>
+      <div class="border-bottom border-warm pb-3 mb-3">
+        <span class="font-mono display-4 fw-bold">01</span>
+        <span class="ms-3 fw-semibold">Join with a nickname</span>
+      </div>
+      <div class="border-bottom border-warm pb-3 mb-3">
+        <span class="font-mono display-4 fw-bold">02</span>
+        <span class="ms-3 fw-semibold">See people ahead of you</span>
+      </div>
+      <div>
+        <span class="font-mono display-4 fw-bold">03</span>
+        <span class="ms-3 fw-semibold">Get called when a PC is assigned</span>
+      </div>
+    </div>
+  </aside>
+</section>
 {% endblock %}
