@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+{% block title %}Staff dashboard · Mito{% endblock %}
+
+{% block content %}
+<section>
+  <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+    <div>
+      <p class="eyebrow mb-2">Arena · Operations</p>
+      <h1 class="display-5 fw-bold mb-1">Staff dashboard</h1>
+      <p class="text-secondary mb-0">Update PCs as they become free or busy. Call next assigns an open PC to the oldest waiting ticket.</p>
+    </div>
+    <p class="mb-0 fw-semibold" aria-live="polite">{{ waiting_count }} waiting · {{ held_count }} on hold · {{ called_count }} called · {{ open_pcs }} PCs open</p>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-12 col-xl-7 order-2 order-xl-1">
+      <section class="surface-card p-3 p-lg-4" aria-labelledby="queue-title">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
+          <h2 id="queue-title" class="h4 fw-bold mb-0">Queue in order</h2>
+          <form method="get" action="{{ url_for('staff_dashboard') }}" class="queue-filter d-flex align-items-center gap-2">
+            <label for="service-filter" class="form-label mb-0">Service</label>
+            <select id="service-filter" name="service_id" class="form-select" aria-label="Filter queue by service">
+              <option value="">All services</option>
+              {% for service in services %}
+                <option value="{{ service.id }}" {% if selected == service.id %}selected{% endif %}>{{ service.name }}</option>
+              {% endfor %}
+            </select>
+            <button class="btn btn-outline-primary" type="submit">Filter</button>
+          </form>
+        </div>
+
+        {% if queue %}
+          <div class="table-responsive d-none d-xl-block">
+            <table class="table table-striped align-middle mb-0">
+              <caption class="visually-hidden">Waiting, held, and called Mito tickets in number order</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Ticket</th>
+                  <th scope="col">Nickname</th>
+                  <th scope="col">Service</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">PC</th>
+                  <th scope="col">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for ticket in queue %}
+                  <tr>
+                    <th scope="row">#{{ ticket.number }}</th>
+                    <td>{{ ticket.nickname }}</td>
+                    <td>{{ names[ticket.service_id] }}</td>
+                    <td>{% if ticket.status == 'on-hold' %}On hold until {{ ticket.held_until.strftime("%I:%M %p") }}{% else %}{{ ticket.status }}{% endif %}</td>
+                    <td>{{ ticket.station_id or '—' }}</td>
+                    <td>
+                      {% if ticket.status == 'called' %}
+                        <div class="d-flex flex-wrap gap-2">
+                          <form method="post" action="{{ url_for('staff_action', ticket_id=ticket.number, action='serve') }}">
+                            <input type="hidden" name="service_id" value="{{ selected or '' }}">
+                            <button class="btn btn-sm btn-success px-3 py-2" type="submit" aria-label="Mark ticket {{ ticket.number }} as served">Serve</button>
+                          </form>
+                          <form method="post" action="{{ url_for('staff_action', ticket_id=ticket.number, action='no-show') }}">
+                            <input type="hidden" name="service_id" value="{{ selected or '' }}">
+                            <button class="btn btn-sm btn-outline-danger px-3 py-2" type="submit" aria-label="Mark ticket {{ ticket.number }} as no-show">No-show</button>
+                          </form>
+                        </div>
+                      {% elif ticket.status == 'on-hold' %}
+                        <span class="text-secondary">Not ready to call · PC not reserved</span>
+                      {% else %}
+                        <span class="text-secondary">Waiting for a PC</span>
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          <div class="queue-ticket-list d-xl-none">
+            {% for ticket in queue %}
+              <article class="queue-ticket-card py-3 border-bottom">
+                <div class="d-flex align-items-start justify-content-between gap-3 mb-2">
+                  <div>
+                    <h3 class="h5 fw-bold mb-1"><span class="font-mono">#{{ ticket.number }}</span> · {{ ticket.nickname }}</h3>
+                    <p class="small text-secondary mb-0">{{ names[ticket.service_id] }} · PC {{ ticket.station_id or 'not assigned' }}</p>
+                  </div>
+                  <span class="badge {{ 'text-bg-warning' if ticket.status == 'waiting' else ('text-bg-info' if ticket.status == 'on-hold' else 'text-bg-primary') }}">{{ ticket.status }}</span>
+                </div>
+                {% if ticket.status == 'on-hold' %}
+                  <p class="small text-secondary mb-0">On hold until {{ ticket.held_until.strftime("%I:%M %p") }} · PC not reserved</p>
+                {% endif %}
+                {% if ticket.status == 'called' %}
+                  <div class="d-flex flex-wrap gap-2 mt-3">
+                    <form method="post" action="{{ url_for('staff_action', ticket_id=ticket.number, action='serve') }}">
+                      <input type="hidden" name="service_id" value="{{ selected or '' }}">
+                      <button class="btn btn-sm btn-success px-3 py-2" type="submit" aria-label="Mark ticket {{ ticket.number }} as served">Serve</button>
+                    </form>
+                    <form method="post" action="{{ url_for('staff_action', ticket_id=ticket.number, action='no-show') }}">
+                      <input type="hidden" name="service_id" value="{{ selected or '' }}">
+                      <button class="btn btn-sm btn-outline-danger px-3 py-2" type="submit" aria-label="Mark ticket {{ ticket.number }} as no-show">No-show</button>
+                    </form>
+                  </div>
+                {% elif ticket.status == 'on-hold' %}
+                  <p class="small text-secondary mb-0 mt-2">Not ready to call. Other waiting tickets can be called.</p>
+                {% else %}
+                  <p class="small text-secondary mb-0 mt-2">Waiting for a PC</p>
+                {% endif %}
+              </article>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="empty-state rounded-3 p-4 text-center">
+            <h3 class="h5 fw-bold">No one is waiting</h3>
+            <p class="mb-0">New tickets will appear here in order.</p>
+          </div>
+        {% endif %}
+      </section>
+    </div>
+
+    <div class="col-12 col-xl-5 order-1 order-xl-2 d-flex flex-column">
+      <section class="call-panel order-1 order-xl-2 p-3 p-lg-4 mb-4" aria-labelledby="call-title">
+        {% if next_ticket %}
+          <p class="eyebrow mb-2">Next in order</p>
+          <h2 id="call-title" class="h4 fw-bold">#{{ next_ticket.number }} · {{ next_ticket.nickname }}</h2>
+          <p>One PC session</p>
+          {% if free_stations %}
+            <form method="post" action="{{ url_for('call_next') }}">
+              <input type="hidden" name="service_id" value="{{ selected or services[0].id }}">
+              <label class="form-label fw-semibold" for="station-id">Assign an open PC</label>
+              <select class="form-select mb-3" id="station-id" name="station_id" required>
+                {% for station in free_stations %}
+                  <option value="{{ station.id }}">{{ station.id }}</option>
+                {% endfor %}
+              </select>
+              <button class="btn btn-primary btn-lg w-100 py-3" type="submit">Call next</button>
+            </form>
+          {% else %}
+            <p class="mb-0">No PCs are open. Mark a station free before calling the next ticket.</p>
+          {% endif %}
+        {% else %}
+          <p class="eyebrow mb-2">Queue action</p>
+          <h2 id="call-title" class="h4 fw-bold">No waiting tickets</h2>
+          <p class="mb-0">When someone joins or resumes a hold, their ticket will be ready to call here.{% if held_count %} {{ held_count }} ticket{% if held_count != 1 %}s are{% else %} is{% endif %} on hold and do not reserve a PC.{% endif %}</p>
+        {% endif %}
+      </section>
+
+      <section class="surface-card order-2 order-xl-1 p-3 p-lg-4 mb-4" aria-labelledby="stations-title">
+        <div class="d-flex justify-content-between align-items-start gap-2 mb-3">
+          <div>
+            <h2 id="stations-title" class="h4 fw-bold mb-1">PC availability</h2>
+            <p class="small text-secondary mb-0">Updated {{ updated_at.strftime("%I:%M %p") }}</p>
+          </div>
+          <span class="badge text-bg-success fs-6">{{ open_pcs }} open</span>
+        </div>
+        <div class="row g-2">
+          {% for station in stations %}
+            <div class="col-6">
+              <form method="post" action="{{ url_for('toggle_station', station_id=station.id) }}">
+                <button class="station-button {{ 'station-free' if station.status == 'free' else '' }} w-100 d-flex justify-content-between align-items-center gap-2 p-3"
+                        type="submit" aria-label="Mark {{ station.id }} {{ 'busy' if station.status == 'free' else 'free' }}">
+                  <span class="fw-semibold">{{ station.id }}</span>
+                  <span class="badge {{ 'text-bg-success' if station.status == 'free' else 'text-bg-secondary' }}">{{ station.status }}</span>
+                </button>
+              </form>
+            </div>
+          {% endfor %}
+        </div>
+        <p class="form-text mb-0 mt-2">Select a station to switch it between free and busy.</p>
+      </section>
+
+    </div>
+  </div>
+</section>
+{% endblock %}

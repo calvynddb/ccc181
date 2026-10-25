@@ -1,0 +1,16 @@
+# Virtual environments (use the Python version in .python-version)
+.venv*/
+venv/
+
+# Python cache files
+__pycache__/
+*.pyc
+
+# Secrets such as API keys
+.env
+
+# Editor and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
