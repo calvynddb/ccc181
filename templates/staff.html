@@ -7,9 +7,9 @@
     <div>
       <p class="eyebrow mb-2">Arena · Operations</p>
       <h1 class="display-5 fw-bold mb-1">Staff dashboard</h1>
-      <p class="text-secondary mb-0">Manage the individual PC queue and station availability.</p>
+      <p class="text-secondary mb-0">Update PCs as they become free or busy. Call next assigns an open PC to the oldest waiting ticket.</p>
     </div>
-    <p class="mb-0 fw-semibold" aria-live="polite">{{ waiting_count }} waiting · {{ called_count }} called · {{ open_pcs }} PCs open</p>
+    <p class="mb-0 fw-semibold" aria-live="polite">{{ waiting_count }} waiting · {{ held_count }} on hold · {{ called_count }} called · {{ open_pcs }} PCs open</p>
   </div>
 
   <div class="row g-4">
@@ -32,7 +32,7 @@
         {% if queue %}
           <div class="table-responsive d-none d-xl-block">
             <table class="table table-striped align-middle mb-0">
-              <caption class="visually-hidden">Waiting and called Mito tickets in number order</caption>
+              <caption class="visually-hidden">Waiting, held, and called Mito tickets in number order</caption>
               <thead>
                 <tr>
                   <th scope="col">Ticket</th>
@@ -49,7 +49,7 @@
                     <th scope="row">#{{ ticket.number }}</th>
                     <td>{{ ticket.nickname }}</td>
                     <td>{{ names[ticket.service_id] }}</td>
-                    <td>{{ ticket.status }}</td>
+                    <td>{% if ticket.status == 'on-hold' %}On hold until {{ ticket.held_until.strftime("%I:%M %p") }}{% else %}{{ ticket.status }}{% endif %}</td>
                     <td>{{ ticket.station_id or '—' }}</td>
                     <td>
                       {% if ticket.status == 'called' %}
@@ -63,6 +63,8 @@
                             <button class="btn btn-sm btn-outline-danger px-3 py-2" type="submit" aria-label="Mark ticket {{ ticket.number }} as no-show">No-show</button>
                           </form>
                         </div>
+                      {% elif ticket.status == 'on-hold' %}
+                        <span class="text-secondary">Not ready to call · PC not reserved</span>
                       {% else %}
                         <span class="text-secondary">Waiting for a PC</span>
                       {% endif %}
@@ -80,8 +82,11 @@
                     <h3 class="h5 fw-bold mb-1"><span class="font-mono">#{{ ticket.number }}</span> · {{ ticket.nickname }}</h3>
                     <p class="small text-secondary mb-0">{{ names[ticket.service_id] }} · PC {{ ticket.station_id or 'not assigned' }}</p>
                   </div>
-                  <span class="badge {{ 'text-bg-warning' if ticket.status == 'waiting' else 'text-bg-primary' }}">{{ ticket.status }}</span>
+                  <span class="badge {{ 'text-bg-warning' if ticket.status == 'waiting' else ('text-bg-info' if ticket.status == 'on-hold' else 'text-bg-primary') }}">{{ ticket.status }}</span>
                 </div>
+                {% if ticket.status == 'on-hold' %}
+                  <p class="small text-secondary mb-0">On hold until {{ ticket.held_until.strftime("%I:%M %p") }} · PC not reserved</p>
+                {% endif %}
                 {% if ticket.status == 'called' %}
                   <div class="d-flex flex-wrap gap-2 mt-3">
                     <form method="post" action="{{ url_for('staff_action', ticket_id=ticket.number, action='serve') }}">
@@ -93,6 +98,8 @@
                       <button class="btn btn-sm btn-outline-danger px-3 py-2" type="submit" aria-label="Mark ticket {{ ticket.number }} as no-show">No-show</button>
                     </form>
                   </div>
+                {% elif ticket.status == 'on-hold' %}
+                  <p class="small text-secondary mb-0 mt-2">Not ready to call. Other waiting tickets can be called.</p>
                 {% else %}
                   <p class="small text-secondary mb-0 mt-2">Waiting for a PC</p>
                 {% endif %}
@@ -131,7 +138,7 @@
         {% else %}
           <p class="eyebrow mb-2">Queue action</p>
           <h2 id="call-title" class="h4 fw-bold">No waiting tickets</h2>
-          <p class="mb-0">When someone joins, their ticket will be ready to call here.</p>
+          <p class="mb-0">When someone joins or resumes a hold, their ticket will be ready to call here.{% if held_count %} {{ held_count }} ticket{% if held_count != 1 %}s are{% else %} is{% endif %} on hold and do not reserve a PC.{% endif %}</p>
         {% endif %}
       </section>
 

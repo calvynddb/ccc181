@@ -13,7 +13,7 @@ Scores below were transcribed from the supplied Chrome Lighthouse mobile screens
 
 ## Keyboard-only check
 
-The user reports that the keyboard-only flow passed and no failures were found. Detailed focus movement and skip-link observations were not provided.
+The user reports that the keyboard-only flow passed and no failures were found. In the usual keyboard flow, Tab moves through the page controls in reading order, a visible outline marks the focused control, Enter activates links, and Enter or Space activates buttons. Mito's shared layout provides a skip link as the first keyboard stop; it becomes visible on focus and jumps past the navigation to the main content. The source also adds a clear focus outline. These notes describe the expected/source-reviewed behavior; the user did not report a separate focus-by-focus observation.
 
 ## Manual checklist
 
