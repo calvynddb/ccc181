@@ -17,6 +17,7 @@ if sys.version_info < (3, 11):
     raise RuntimeError("Mito requires Python 3.11 or newer.")
 
 app = Flask(__name__)
+app.secret_key = "dev-only-change-me"
 
 SERVICES = [
     {"id": 1, "name": "PC session"},
@@ -42,21 +43,22 @@ TICKETS = [
 
 @app.route("/")
 def index():
-    # render_template looks inside the templates/ folder and passes
-    # keyword arguments to the template as variables.
-    return render_template("index.html", name="Mito player", tickets=TICKETS)
+    return render_template("index.html")
+
+
+@app.get("/join")
+def join_form():
+    return render_template("join.html")
+
+
+@app.get("/staff")
+def staff_dashboard():
+    return render_template("staff.html")
 
 
 @app.route("/queue/<int:ticket_id>")
 def ticket(ticket_id):
-    # <int:ticket_id> only matches numbers, so /queue/abc returns 404.
     return render_template("ticket.html", ticket_id=ticket_id)
-
-
-@app.route("/hello")
-def hello():
-    # The plain-string version from the Routes slide.
-    return "Hello, CCC181!"
 
 
 if __name__ == "__main__":
