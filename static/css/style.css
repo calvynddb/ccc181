@@ -61,6 +61,27 @@ samp {
   background: var(--mito-paper) !important;
 }
 
+.station-button {
+  min-height: 3.5rem;
+  color: var(--mito-ink);
+  background: white;
+  border: 1px solid var(--mito-border);
+  border-radius: 0.5rem;
+  text-align: left;
+}
+
+.station-button:hover {
+  border-color: var(--mito-teal);
+}
+
+.call-panel {
+  background: #f1efeb;
+}
+
+.empty-state {
+  background: #f5f4f1;
+}
+
 .navbar-brand {
   color: var(--mito-ink);
 }
