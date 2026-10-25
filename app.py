@@ -272,6 +272,8 @@ def leave_queue(ticket_id):
         flash(f"Ticket #{ticket_id} has left the queue.", "info")
     else:
         flash(f"Ticket #{ticket_id} is already {current_ticket['status']}.", "info")
+    if session.get("current_ticket_id") == ticket_id:
+        session.pop("current_ticket_id", None)
     return redirect(url_for("index"))
 
 
