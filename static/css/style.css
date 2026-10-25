@@ -259,6 +259,18 @@ h3,
   background: #f1f0eb;
 }
 
+.queue-ticket-card:last-child {
+  border-bottom: 0 !important;
+}
+
+.queue-filter {
+  max-width: 100%;
+}
+
+.btn {
+  min-height: 44px;
+}
+
 .skip-link:focus {
   position: fixed;
   z-index: 1080;
@@ -282,5 +294,19 @@ h3,
 
   .navbar-nav .nav-link.active {
     border-bottom-color: var(--mito-ink);
+  }
+
+  .queue-filter {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .queue-filter label {
+    flex: 0 0 100%;
+  }
+
+  .queue-filter .form-select {
+    min-width: 0;
+    flex: 1 1 auto;
   }
 }
