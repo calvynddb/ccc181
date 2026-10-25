@@ -122,7 +122,101 @@ def join():
 
 @app.get("/staff")
 def staff_dashboard():
-    return render_template("staff.html")
+    service_id = request.args.get("service_id", type=int)
+    valid_service_ids = {service["id"] for service in SERVICES}
+    if service_id not in valid_service_ids:
+        service_id = None
+
+    queue = [
+        ticket
+        for ticket in TICKETS
+        if ticket["status"] in ("waiting", "called")
+        and (service_id is None or ticket["service_id"] == service_id)
+    ]
+    queue.sort(key=lambda ticket: ticket["number"])
+    names = {service["id"]: service["name"] for service in SERVICES}
+    next_ticket = next((ticket for ticket in queue if ticket["status"] == "waiting"), None)
+    free_stations = [station for station in STATIONS if station["status"] == "free"]
+    return render_template(
+        "staff.html",
+        queue=queue,
+        services=SERVICES,
+        names=names,
+        selected=service_id,
+        next_ticket=next_ticket,
+        free_stations=free_stations,
+        stations=STATIONS,
+        open_pcs=len(free_stations),
+        waiting_count=sum(ticket["status"] == "waiting" for ticket in queue),
+        called_count=sum(ticket["status"] == "called" for ticket in queue),
+        updated_at=AVAILABILITY_UPDATED_AT,
+    )
+
+
+@app.post("/staff/call-next")
+def call_next():
+    service_id = request.form.get("service_id", type=int)
+    if service_id not in {service["id"] for service in SERVICES}:
+        service_id = SERVICES[0]["id"]
+    station_id = request.form.get("station_id", "")
+    station = next((item for item in STATIONS if item["id"] == station_id), None)
+    next_ticket = next(
+        (
+            ticket
+            for ticket in sorted(TICKETS, key=lambda item: item["number"])
+            if ticket["status"] == "waiting" and ticket["service_id"] == service_id
+        ),
+        None,
+    )
+    if next_ticket is None:
+        flash("There are no waiting tickets for this service.", "info")
+    elif station is None or station["status"] != "free":
+        flash("Choose a PC that is currently open.", "warning")
+    else:
+        next_ticket["status"] = "called"
+        next_ticket["station_id"] = station["id"]
+        station["status"] = "busy"
+        global AVAILABILITY_UPDATED_AT
+        AVAILABILITY_UPDATED_AT = datetime.now().astimezone()
+        flash(f"Ticket #{next_ticket['number']} called to {station['id']}.", "success")
+    return redirect(url_for("staff_dashboard", service_id=service_id))
+
+
+@app.post("/staff/stations/<station_id>/toggle")
+def toggle_station(station_id):
+    station = next((item for item in STATIONS if item["id"] == station_id), None)
+    if station is None:
+        abort(404)
+    station["status"] = "busy" if station["status"] == "free" else "free"
+    global AVAILABILITY_UPDATED_AT
+    AVAILABILITY_UPDATED_AT = datetime.now().astimezone()
+    flash(f"{station['id']} marked {station['status']}.", "info")
+    return redirect(url_for("staff_dashboard"))
+
+
+@app.post("/staff/tickets/<int:ticket_id>/<action>")
+def staff_action(ticket_id, action):
+    ticket = next((item for item in TICKETS if item["number"] == ticket_id), None)
+    if ticket is None or action not in ("serve", "no-show"):
+        abort(404)
+
+    service_id = request.form.get("service_id", type=int)
+    if action == "serve" and ticket["status"] != "called":
+        flash(f"Call ticket #{ticket_id} before marking it served.", "warning")
+    elif action == "no-show" and ticket["status"] not in ("waiting", "called"):
+        flash(f"Ticket #{ticket_id} is already {ticket['status']}.", "info")
+    else:
+        ticket["status"] = "served" if action == "serve" else "no-show"
+        if action == "no-show" and ticket["station_id"]:
+            station = next(
+                (item for item in STATIONS if item["id"] == ticket["station_id"]), None
+            )
+            if station:
+                station["status"] = "free"
+                global AVAILABILITY_UPDATED_AT
+                AVAILABILITY_UPDATED_AT = datetime.now().astimezone()
+        flash(f"Ticket #{ticket_id} marked {ticket['status']}.", "info")
+    return redirect(url_for("staff_dashboard", service_id=service_id))
 
 
 @app.route("/queue/<int:ticket_id>")
@@ -165,6 +259,15 @@ def leave_queue(ticket_id):
     if current_ticket is None:
         abort(404)
     if current_ticket["status"] in ("waiting", "called"):
+        if current_ticket["status"] == "called" and current_ticket["station_id"]:
+            station = next(
+                (item for item in STATIONS if item["id"] == current_ticket["station_id"]),
+                None,
+            )
+            if station:
+                station["status"] = "free"
+                global AVAILABILITY_UPDATED_AT
+                AVAILABILITY_UPDATED_AT = datetime.now().astimezone()
         current_ticket["status"] = "no-show"
         flash(f"Ticket #{ticket_id} has left the queue.", "info")
     else:
