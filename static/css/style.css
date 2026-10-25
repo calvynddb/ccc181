@@ -61,6 +61,11 @@ samp {
   background: var(--mito-paper) !important;
 }
 
+.workflow-note {
+  background: #f1efeb;
+  border-left: 4px solid var(--mito-teal);
+}
+
 .station-button {
   min-height: 3.5rem;
   color: var(--mito-ink);
@@ -280,6 +285,11 @@ h3,
   background: white;
   color: var(--mito-ink);
   border: 2px solid var(--mito-ink);
+}
+
+#hold-action button {
+  width: 100%;
+  white-space: normal;
 }
 
 @media (max-width: 767.98px) {

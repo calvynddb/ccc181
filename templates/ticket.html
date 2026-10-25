@@ -29,17 +29,25 @@
             </p>
           {% elif ticket.status == "called" %}
             <p id="ticket-position" data-status="called" class="h4 fw-semibold mb-0">Your PC is ready{% if ticket.station_id %}: {{ ticket.station_id }}{% endif %}</p>
+          {% elif ticket.status == "on-hold" %}
+            <p id="ticket-position" data-status="on-hold" class="h4 fw-semibold mb-2">Your place is on hold until {{ held_until }}.</p>
           {% elif ticket.status == "served" %}
             <p id="ticket-position" data-status="served" class="h4 fw-semibold mb-0">Your session has started{% if ticket.station_id %} at {{ ticket.station_id }}{% endif %}</p>
           {% else %}
-            <p id="ticket-position" data-status="no-show" class="h4 fw-semibold mb-0">This ticket is no longer in the queue.</p>
+            <p id="ticket-position" data-status="no-show" class="h4 fw-semibold mb-0">{% if hold_expired %}Your 10-minute hold expired. Join again when you're ready.{% else %}This ticket is no longer in the queue.{% endif %}</p>
           {% endif %}
       </div>
-        {% if ticket.status in ("waiting", "called") %}
-          <form id="leave-action" method="post" action="{{ url_for('leave_queue', ticket_id=ticket.number) }}">
+      <p id="hold-note" class="workflow-note p-3 mb-4" {% if ticket.status != "on-hold" %}hidden{% endif %}>Staff can call other ready tickets while you pause. Resume before the hold expires to return to your original ticket order.</p>
+      <p id="queue-note" class="workflow-note p-3 mb-4" {% if ticket.status == "on-hold" %}hidden{% endif %}>Staff at Arena update PC availability and assign a PC to each ticket; Mito does not assign PCs automatically. Keep this page open; Mito updates it when staff call you.</p>
+        <form id="hold-action" method="post" action="{{ url_for('hold_queue_place', ticket_id=ticket.number) }}" class="mb-3" {% if ticket.status != "waiting" %}hidden{% endif %}>
+            <button class="btn btn-outline-primary w-100 text-wrap py-3 px-4" type="submit">Hold my place for 10 minutes</button>
+        </form>
+        <form id="resume-action" method="post" action="{{ url_for('resume_queue_place', ticket_id=ticket.number) }}" class="mb-3" {% if ticket.status != "on-hold" %}hidden{% endif %}>
+            <button class="btn btn-primary py-3 px-4" type="submit">Resume my place</button>
+        </form>
+        <form id="leave-action" method="post" action="{{ url_for('leave_queue', ticket_id=ticket.number) }}" {% if ticket.status not in ("waiting", "called", "on-hold") %}hidden{% endif %}>
             <button class="btn btn-outline-secondary py-3 px-4" type="submit">Leave the queue</button>
-          </form>
-        {% endif %}
+        </form>
     </div>
   </div>
 </section>

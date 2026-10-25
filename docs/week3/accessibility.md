@@ -13,7 +13,7 @@ Scores below were transcribed from the supplied Chrome Lighthouse mobile screens
 
 ## Keyboard-only check
 
-The user reports that the keyboard-only flow passed and no failures were found. Detailed focus movement and skip-link observations were not provided.
+The user reports that the keyboard-only check worked flawlessly for both required flows: joining from the home page, and filtering the staff queue, calling a ticket, and marking it served. Tab and Shift+Tab move through the forms and buttons, the visible focus outline shows the current control, Enter activates links and submits forms, Space activates buttons, and arrow keys operate the service and PC selectors. The skip link appears on the first Tab and moves focus to the main content. The check found no keyboard failures.
 
 ## Manual checklist
 
