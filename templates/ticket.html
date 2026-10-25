@@ -1,9 +1,46 @@
 {% extends "base.html" %}
 
-{% block title %}Ticket #{{ ticket_id }} · Mito{% endblock %}
+{% block title %}My place · Ticket #{{ ticket.number }} · Mito{% endblock %}
 
 {% block content %}
-  <h2>Ticket #{{ ticket_id }}</h2>
-  <p>This page was built from the URL <code>/queue/{{ ticket_id }}</code>.</p>
-  <p><a href="{{ url_for('index') }}">&larr; Back to the queue</a></p>
+<section class="mx-auto" style="max-width: 1100px">
+  <header class="section-rule mb-4 mb-lg-5">
+    <p class="eyebrow mb-2">Your place in line</p>
+    <h1 class="h2 fw-bold mb-1">My place</h1>
+    <p class="text-secondary mb-0">One player · {{ service.name }}</p>
+  </header>
+
+  <div class="row g-4 g-lg-5 align-items-stretch">
+    <div class="col-12 col-lg-5 d-flex flex-column justify-content-center">
+      <p class="eyebrow mb-2">Mito ticket</p>
+      <p class="ticket-number font-mono fw-bold mb-3">#{{ ticket.number }}</p>
+      <p class="h4 fw-semibold mb-0">{{ ticket.nickname }}</p>
+    </div>
+    <div class="col-12 col-lg-7">
+      <div id="live-status" data-status-url="{{ url_for('ticket_status', ticket_id=ticket.number) }}"
+           aria-live="polite" aria-atomic="true" class="ticket-status-panel p-4 p-lg-5 mb-3">
+        <p class="eyebrow mb-3">Current status</p>
+          <p class="mb-2"><span class="visually-hidden">Status: </span>
+            <span id="ticket-status" class="badge {{ status_classes[ticket.status] }} fs-6">{{ ticket.status }}</span>
+          </p>
+          {% if ticket.status == "waiting" %}
+            <p id="ticket-position" data-status="waiting" data-ahead="{{ ahead }}" class="h4 fw-semibold mb-0">
+              {% if ahead == 0 %}You're next!{% else %}{{ ahead }} {{ 'person' if ahead == 1 else 'people' }} ahead of you{% endif %}
+            </p>
+          {% elif ticket.status == "called" %}
+            <p id="ticket-position" data-status="called" class="h4 fw-semibold mb-0">Your PC is ready{% if ticket.station_id %}: {{ ticket.station_id }}{% endif %}</p>
+          {% elif ticket.status == "served" %}
+            <p id="ticket-position" data-status="served" class="h4 fw-semibold mb-0">Your session has started{% if ticket.station_id %} at {{ ticket.station_id }}{% endif %}</p>
+          {% else %}
+            <p id="ticket-position" data-status="no-show" class="h4 fw-semibold mb-0">This ticket is no longer in the queue.</p>
+          {% endif %}
+      </div>
+        {% if ticket.status in ("waiting", "called") %}
+          <form id="leave-action" method="post" action="{{ url_for('leave_queue', ticket_id=ticket.number) }}">
+            <button class="btn btn-outline-secondary py-3 px-4" type="submit">Leave the queue</button>
+          </form>
+        {% endif %}
+    </div>
+  </div>
+</section>
 {% endblock %}

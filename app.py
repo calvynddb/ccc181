@@ -127,7 +127,49 @@ def staff_dashboard():
 
 @app.route("/queue/<int:ticket_id>")
 def ticket(ticket_id):
-    return render_template("ticket.html", ticket_id=ticket_id)
+    current_ticket = next(
+        (ticket for ticket in TICKETS if ticket["number"] == ticket_id), None
+    )
+    if current_ticket is None:
+        abort(404)
+
+    ahead = sum(
+        1
+        for other in TICKETS
+        if other["service_id"] == current_ticket["service_id"]
+        and other["status"] == "waiting"
+        and other["number"] < current_ticket["number"]
+    )
+    service = next(
+        service for service in SERVICES if service["id"] == current_ticket["service_id"]
+    )
+    return render_template(
+        "ticket.html",
+        ticket=current_ticket,
+        service=service,
+        ahead=ahead,
+        status_classes={
+            "waiting": "text-bg-warning",
+            "called": "text-bg-success",
+            "served": "text-bg-secondary",
+            "no-show": "text-bg-danger",
+        },
+    )
+
+
+@app.post("/queue/<int:ticket_id>/leave")
+def leave_queue(ticket_id):
+    current_ticket = next(
+        (ticket for ticket in TICKETS if ticket["number"] == ticket_id), None
+    )
+    if current_ticket is None:
+        abort(404)
+    if current_ticket["status"] in ("waiting", "called"):
+        current_ticket["status"] = "no-show"
+        flash(f"Ticket #{ticket_id} has left the queue.", "info")
+    else:
+        flash(f"Ticket #{ticket_id} is already {current_ticket['status']}.", "info")
+    return redirect(url_for("index"))
 
 
 if __name__ == "__main__":
