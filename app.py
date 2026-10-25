@@ -275,5 +275,26 @@ def leave_queue(ticket_id):
     return redirect(url_for("index"))
 
 
+@app.get("/queue/<int:ticket_id>/status.json")
+def ticket_status(ticket_id):
+    current_ticket = next(
+        (ticket for ticket in TICKETS if ticket["number"] == ticket_id), None
+    )
+    if current_ticket is None:
+        abort(404)
+    ahead = sum(
+        1
+        for other in TICKETS
+        if other["service_id"] == current_ticket["service_id"]
+        and other["status"] == "waiting"
+        and other["number"] < current_ticket["number"]
+    )
+    return {
+        "status": current_ticket["status"],
+        "ahead": ahead,
+        "station_id": current_ticket["station_id"],
+    }
+
+
 if __name__ == "__main__":
     app.run(debug=True)
