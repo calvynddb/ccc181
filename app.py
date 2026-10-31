@@ -18,6 +18,8 @@ from flask import (
 )
 from flask_migrate import Migrate
 from models import Service, Station, Ticket, db
+from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
 
 if sys.version_info.releaselevel != "final":
     raise RuntimeError(
@@ -37,39 +39,12 @@ app.config["SQLALCHEMY_ECHO"] = os.environ.get("SQLALCHEMY_ECHO") == "1"
 db.init_app(app)
 migrate = Migrate(app, db)
 
-SERVICES = [{"id": 1, "name": "PC session"}]
-
 STATIONS = [
     {"id": "PC-01", "status": "free"},
     {"id": "PC-02", "status": "busy"},
     {"id": "PC-03", "status": "free"},
     {"id": "PC-04", "status": "free"},
 ]
-AVAILABILITY_UPDATED_AT = datetime.now().astimezone()
-
-TICKETS = [
-    {
-        "number": 1,
-        "nickname": "Ana",
-        "phone": None,
-        "service_id": 1,
-        "status": "waiting",
-        "station_id": None,
-        "held_until": None,
-        "hold_expired": False,
-    },
-    {
-        "number": 2,
-        "nickname": "Ben",
-        "phone": None,
-        "service_id": 1,
-        "status": "waiting",
-        "station_id": None,
-        "held_until": None,
-        "hold_expired": False,
-    },
-]
-
 HOLD_DURATION = timedelta(minutes=10)
 
 
@@ -96,12 +71,37 @@ def seed():
 @app.before_request
 def expire_ticket_holds():
     now = datetime.now().astimezone()
-    for ticket in TICKETS:
-        if (ticket["status"] == "on-hold" and ticket["held_until"]
-                and ticket["held_until"] <= now):
-            ticket["status"] = "no-show"
-            ticket["held_until"] = None
-            ticket["hold_expired"] = True
+    expired_tickets = db.session.scalars(
+        db.select(Ticket).where(
+            Ticket.status == "on-hold",
+            Ticket.held_until <= now,
+        )
+    ).all()
+    for ticket in expired_tickets:
+        ticket.status = "no-show"
+        ticket.held_until = None
+        ticket.hold_expired = True
+    if expired_tickets:
+        db.session.commit()
+
+
+def all_services():
+    return db.session.scalars(db.select(Service).order_by(Service.name)).all()
+
+
+def active_services():
+    return db.session.scalars(
+        db.select(Service).filter_by(is_active=True).order_by(Service.name)
+    ).all()
+
+
+def station_availability():
+    open_pcs = db.session.scalar(
+        db.select(func.count()).select_from(Station).where(Station.status == "free")
+    )
+    station_count = db.session.scalar(db.select(func.count()).select_from(Station))
+    updated_at = db.session.scalar(db.select(func.max(Station.updated_at)))
+    return open_pcs or 0, station_count or 0, updated_at or datetime.now().astimezone()
 
 
 @app.route("/")
@@ -111,11 +111,13 @@ def index():
 
 @app.get("/join")
 def join_form():
+    open_pcs, station_count, updated_at = station_availability()
     return render_template(
         "join.html",
-        open_pcs=sum(station["status"] == "free" for station in STATIONS),
-        station_count=len(STATIONS),
-        updated_at=AVAILABILITY_UPDATED_AT,
+        services=active_services(),
+        open_pcs=open_pcs,
+        station_count=station_count,
+        updated_at=updated_at,
         form={},
         errors={},
     )
@@ -126,6 +128,8 @@ def join():
     form = request.form
     nickname = form.get("nickname", "").strip()
     phone = form.get("phone", "").strip()
+    service_id = form.get("service_id", type=int)
+    service = db.session.get(Service, service_id) if service_id else None
     errors = {}
 
     if not nickname:
@@ -135,39 +139,52 @@ def join():
 
     if phone:
         digits = re.sub(r"\D", "", phone)
-        if not re.fullmatch(r"[0-9+() .-]+", phone) or not 7 <= len(digits) <= 15:
+        if (
+            len(phone) > 32
+            or not re.fullmatch(r"[0-9+() .-]+", phone)
+            or not 7 <= len(digits) <= 15
+        ):
             errors["phone"] = "Enter a valid phone number, or leave this optional field blank."
+    if service is None or not service.is_active:
+        errors["service_id"] = "Choose an active service."
 
     if errors:
         flash("Please fix the highlighted fields.", "danger")
+        open_pcs, station_count, updated_at = station_availability()
         return (
             render_template(
                 "join.html",
-                open_pcs=sum(station["status"] == "free" for station in STATIONS),
-                station_count=len(STATIONS),
-                updated_at=AVAILABILITY_UPDATED_AT,
+                services=active_services(),
+                open_pcs=open_pcs,
+                station_count=station_count,
+                updated_at=updated_at,
                 form=form,
                 errors=errors,
             ),
             400,
         )
 
-    number = max((ticket["number"] for ticket in TICKETS), default=0) + 1
-    TICKETS.append(
-        {
-            "number": number,
-            "nickname": nickname,
-            "phone": phone or None,
-            "service_id": SERVICES[0]["id"],
-            "status": "waiting",
-            "station_id": None,
-            "held_until": None,
-            "hold_expired": False,
-        }
-    )
-    session["current_ticket_id"] = number
-    flash(f"You joined the queue. Your ticket is #{number}.", "success")
-    return redirect(url_for("ticket", ticket_id=number))
+    ticket = Ticket(nickname=nickname, phone=phone or None, service=service)
+    db.session.add(ticket)
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        flash("Something went wrong saving your ticket. Please try again.", "danger")
+        open_pcs, station_count, updated_at = station_availability()
+        return render_template(
+            "join.html",
+            services=active_services(),
+            open_pcs=open_pcs,
+            station_count=station_count,
+            updated_at=updated_at,
+            form=form,
+            errors={},
+        ), 409
+
+    session["current_ticket_id"] = ticket.id
+    flash(f"You joined the queue. Your ticket is #{ticket.id}.", "success")
+    return redirect(url_for("ticket", ticket_id=ticket.id))
 
 
 @app.get("/staff")

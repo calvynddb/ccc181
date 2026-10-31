@@ -46,7 +46,7 @@
               <tbody>
                 {% for ticket in queue %}
                   <tr>
-                    <th scope="row">#{{ ticket.number }}</th>
+                    <th scope="row">#{{ ticket.id }}</th>
                     <td>{{ ticket.nickname }}</td>
                     <td>{{ names[ticket.service_id] }}</td>
                     <td>{% if ticket.status == 'on-hold' %}On hold until {{ ticket.held_until.strftime("%I:%M %p") }}{% else %}{{ ticket.status }}{% endif %}</td>
@@ -54,13 +54,13 @@
                     <td>
                       {% if ticket.status == 'called' %}
                         <div class="d-flex flex-wrap gap-2">
-                          <form method="post" action="{{ url_for('staff_action', ticket_id=ticket.number, action='serve') }}">
+                          <form method="post" action="{{ url_for('staff_action', ticket_id=ticket.id, action='serve') }}">
                             <input type="hidden" name="service_id" value="{{ selected or '' }}">
-                            <button class="btn btn-sm btn-success px-3 py-2" type="submit" aria-label="Mark ticket {{ ticket.number }} as served">Serve</button>
+                            <button class="btn btn-sm btn-success px-3 py-2" type="submit" aria-label="Mark ticket {{ ticket.id }} as served">Serve</button>
                           </form>
-                          <form method="post" action="{{ url_for('staff_action', ticket_id=ticket.number, action='no-show') }}">
+                          <form method="post" action="{{ url_for('staff_action', ticket_id=ticket.id, action='no-show') }}">
                             <input type="hidden" name="service_id" value="{{ selected or '' }}">
-                            <button class="btn btn-sm btn-outline-danger px-3 py-2" type="submit" aria-label="Mark ticket {{ ticket.number }} as no-show">No-show</button>
+                            <button class="btn btn-sm btn-outline-danger px-3 py-2" type="submit" aria-label="Mark ticket {{ ticket.id }} as no-show">No-show</button>
                           </form>
                         </div>
                       {% elif ticket.status == 'on-hold' %}
@@ -79,7 +79,7 @@
               <article class="queue-ticket-card py-3 border-bottom">
                 <div class="d-flex align-items-start justify-content-between gap-3 mb-2">
                   <div>
-                    <h3 class="h5 fw-bold mb-1"><span class="font-mono">#{{ ticket.number }}</span> · {{ ticket.nickname }}</h3>
+                    <h3 class="h5 fw-bold mb-1"><span class="font-mono">#{{ ticket.id }}</span> · {{ ticket.nickname }}</h3>
                     <p class="small text-secondary mb-0">{{ names[ticket.service_id] }} · PC {{ ticket.station_id or 'not assigned' }}</p>
                   </div>
                   <span class="badge {{ 'text-bg-warning' if ticket.status == 'waiting' else ('text-bg-info' if ticket.status == 'on-hold' else 'text-bg-primary') }}">{{ ticket.status }}</span>
@@ -89,13 +89,13 @@
                 {% endif %}
                 {% if ticket.status == 'called' %}
                   <div class="d-flex flex-wrap gap-2 mt-3">
-                    <form method="post" action="{{ url_for('staff_action', ticket_id=ticket.number, action='serve') }}">
+                    <form method="post" action="{{ url_for('staff_action', ticket_id=ticket.id, action='serve') }}">
                       <input type="hidden" name="service_id" value="{{ selected or '' }}">
-                      <button class="btn btn-sm btn-success px-3 py-2" type="submit" aria-label="Mark ticket {{ ticket.number }} as served">Serve</button>
+                      <button class="btn btn-sm btn-success px-3 py-2" type="submit" aria-label="Mark ticket {{ ticket.id }} as served">Serve</button>
                     </form>
-                    <form method="post" action="{{ url_for('staff_action', ticket_id=ticket.number, action='no-show') }}">
+                    <form method="post" action="{{ url_for('staff_action', ticket_id=ticket.id, action='no-show') }}">
                       <input type="hidden" name="service_id" value="{{ selected or '' }}">
-                      <button class="btn btn-sm btn-outline-danger px-3 py-2" type="submit" aria-label="Mark ticket {{ ticket.number }} as no-show">No-show</button>
+                      <button class="btn btn-sm btn-outline-danger px-3 py-2" type="submit" aria-label="Mark ticket {{ ticket.id }} as no-show">No-show</button>
                     </form>
                   </div>
                 {% elif ticket.status == 'on-hold' %}
@@ -119,7 +119,7 @@
       <section class="call-panel order-1 order-xl-2 p-3 p-lg-4 mb-4" aria-labelledby="call-title">
         {% if next_ticket %}
           <p class="eyebrow mb-2">Next in order</p>
-          <h2 id="call-title" class="h4 fw-bold">#{{ next_ticket.number }} · {{ next_ticket.nickname }}</h2>
+          <h2 id="call-title" class="h4 fw-bold">#{{ next_ticket.id }} · {{ next_ticket.nickname }}</h2>
           <p>One PC session</p>
           {% if free_stations %}
             <form method="post" action="{{ url_for('call_next') }}">
