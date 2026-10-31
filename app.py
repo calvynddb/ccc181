@@ -1,9 +1,11 @@
 """Mito: a simple queue for individual PC sessions at Arena in Tibanga."""
 
 from datetime import datetime, timedelta
+import os
 import re
 import sys
 
+from dotenv import load_dotenv
 from flask import (
     Flask,
     abort,
@@ -14,6 +16,8 @@ from flask import (
     session,
     url_for,
 )
+from flask_migrate import Migrate
+from models import Service, Station, Ticket, db
 
 if sys.version_info.releaselevel != "final":
     raise RuntimeError(
@@ -23,8 +27,15 @@ if sys.version_info.releaselevel != "final":
 if sys.version_info < (3, 11):
     raise RuntimeError("Mito requires Python 3.11 or newer.")
 
+load_dotenv()
+
 app = Flask(__name__)
 app.secret_key = "dev-only-change-me"
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ["DATABASE_URL"]
+app.config["SQLALCHEMY_ECHO"] = os.environ.get("SQLALCHEMY_ECHO") == "1"
+
+db.init_app(app)
+migrate = Migrate(app, db)
 
 SERVICES = [{"id": 1, "name": "PC session"}]
 
