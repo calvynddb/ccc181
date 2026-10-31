@@ -27,6 +27,7 @@
 | FR-13 | Staff can review how many customers leave before being served, grouped by service and day. | Could | Yes | Later |
 | FR-14 ★ | Before deciding to come to the café, a customer can see a clearly labeled rough wait estimate. | Won't (this semester) | No | Dropped |
 | FR-15 ★ | After staff assigns a PC and calls a customer, My place shows the exact five-minute response deadline and explains that missing it changes the ticket to no-show and releases the PC. | Should | Yes | This week |
+| FR-16 ★ | Staff can add a PC station with a unique PC ID, and Mito includes it in the availability count and dashboard. | Should | Yes | This week |
 
 FR-15 is a Week 4 addition to make the call outcome clearer for customers who may be away from the café. It has not yet been checked with the person who reviewed the original requirements. The five-minute duration follows the existing Mito design draft; the current Flask implementation does not yet enforce a call deadline.
 

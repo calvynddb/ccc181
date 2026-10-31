@@ -15,11 +15,12 @@ The queue is the set of active tickets ordered by ticket ID. A separate queue ta
 | FR-05 | Staff can mark each **PC** **free** or **busy**. | PC, station status | `stations.id`, `stations.status` |
 | FR-06 | A customer can place a **ticket** on a 10-minute **hold**, see if the hold **expired**, and resume in its original order. | ticket, hold, expiry, duration, order | `tickets.status`, `tickets.held_until`, `tickets.hold_expired`; order is computed from ticket ID |
 | FR-07 | A customer can leave the **queue** and keep the **departure status** on their ticket. | queue, departure status | `tickets.status`, `tickets.left_at`; active queue is computed |
-| FR-08 | Staff can add and rename a **service** and deactivate it. | service, name, active state | `services.name`, `services.is_active` |
+| FR-08 | Staff can add and rename a **service** and deactivate it. | service, name, active state | `services.name`, `services.active` |
 | FR-09 | Staff can permanently delete a mistaken **ticket**. | ticket, deletion | The ticket row is deleted; no extra column is needed |
 | FR-10 | My place can show the assigned **PC** on a **floor map** with its floor and position. | PC, floor, map position | `stations.floor`, `stations.map_x`, `stations.map_y` (Later) |
 | FR-13 | Staff can count customers who **leave**, by **service** and **day**. | departures, service, day | `tickets.status`, `tickets.left_at`, `tickets.service_id`; the count is computed |
 | FR-15 | After staff assigns a **PC** and calls a **customer**, My place shows the exact five-minute **response deadline** and explains the **no-show** outcome. | PC, customer, response deadline, no-show | `tickets.status`, `tickets.called_at`, `tickets.claim_until`, `tickets.station_id` |
+| FR-16 | Staff can add a **PC station** with a unique **PC ID**, and Mito includes it in the **availability count** and **dashboard**. | PC station, PC ID, availability count, dashboard | `stations.id`, `stations.status`; availability is computed |
 
 FR-11 and FR-12 change how often the screens refresh, but require no additional stored facts. FR-14 is Dropped and has no database fields.
 
@@ -27,7 +28,7 @@ FR-11 and FR-12 change how often the screens refresh, but require no additional 
 
 | Table | Columns | Why this table exists |
 | --- | --- | --- |
-| `services` | `id`, `name`, `is_active` | Stores the queue services staff manage. Deactivation preserves old tickets. |
+| `services` | `id`, `name`, `active` | Stores the queue services staff manage. Deactivation preserves old tickets. |
 | `stations` | `id`, `status`, `updated_at`, `floor`, `map_x`, `map_y` | Stores each PC's ID and availability; future map details are nullable and support FR-10. |
 | `tickets` | `id`, `nickname`, `phone`, `service_id`, `station_id`, `status`, `created_at`, `held_until`, `hold_expired`, `called_at`, `claim_until`, `left_at` | Stores one customer's queue visit, its service, optional assigned station and lifecycle times. |
 
@@ -39,7 +40,7 @@ There is no `users` table because customers do not create accounts. A nickname c
 | --- | --- | --- | --- | --- |
 | `services` | `id` | `integer` | `GENERATED ALWAYS AS IDENTITY PRIMARY KEY` | Database-generated stable service key. |
 | `services` | `name` | `varchar(60)` | `NOT NULL UNIQUE CHECK (btrim(name) <> '')` | Each service needs a non-empty, unambiguous name. Renaming does not change ticket references. |
-| `services` | `is_active` | `boolean` | `NOT NULL DEFAULT true` | Staff can switch a service off without deleting its ticket history. |
+| `services` | `active` | `boolean` | `NOT NULL DEFAULT true` | Staff can switch a service off without deleting its ticket history. |
 | `stations` | `id` | `varchar(10)` | `PRIMARY KEY CHECK (id ~ '^PC-[0-9]{2}$')` | Keeps the café's station IDs such as `PC-01` stable and correctly formatted. |
 | `stations` | `status` | `varchar(10)` | `NOT NULL CHECK (status IN ('free', 'busy'))` | A station can only be in one of the two states staff manage. |
 | `stations` | `updated_at` | `timestamptz` | `NOT NULL DEFAULT now()` | Records when station availability was last changed; update it whenever staff changes the station state. |
@@ -86,7 +87,7 @@ Tickets have no child table. FR-09 permits staff to permanently delete a mistake
 | Item | Database effect |
 | --- | --- |
 | FR-01, FR-02, FR-04, FR-06, FR-07, FR-09, FR-13, FR-15 | Stored or updated in `tickets`; ticket position and departure totals are calculated from ticket rows. FR-06 expiry reason is retained in `hold_expired`; FR-15 deadline is stored in `claim_until`. |
-| FR-03, FR-04, FR-05 | Stored in `stations`; open-PC count is calculated by counting rows with `status = 'free'`. |
+| FR-03, FR-04, FR-05, FR-16 | Stored in `stations`; open-PC count is calculated by counting rows with `status = 'free'`. |
 | FR-08 | Stored in `services`; inactive services remain available to historical tickets. |
 | FR-10 (Later) | Optional `floor`, `map_x`, and `map_y` on `stations`. |
 | FR-11, FR-12 | No additional columns; the screens refresh existing data. |

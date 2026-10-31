@@ -9,6 +9,12 @@ if (joinForm) {
   });
 }
 
+document.querySelectorAll("form[data-confirm]").forEach((form) => {
+  form.addEventListener("submit", (event) => {
+    if (!confirm(form.dataset.confirm)) event.preventDefault();
+  });
+});
+
 const liveStatus = document.getElementById("live-status");
 if (liveStatus) {
   const statusUrl = liveStatus.dataset.statusUrl;

@@ -9,7 +9,10 @@
       <h1 class="display-5 fw-bold mb-1">Staff dashboard</h1>
       <p class="text-secondary mb-0">Update PCs as they become free or busy. Call next assigns an open PC to the oldest waiting ticket.</p>
     </div>
-    <p class="mb-0 fw-semibold" aria-live="polite">{{ waiting_count }} waiting · {{ held_count }} on hold · {{ called_count }} called · {{ open_pcs }} PCs open</p>
+    <div class="d-flex flex-wrap align-items-center gap-3">
+      <a class="btn btn-outline-primary" href="{{ url_for('services_list') }}">Manage services</a>
+      <p class="mb-0 fw-semibold" aria-live="polite">{{ waiting_count }} waiting · {{ held_count }} on hold · {{ called_count }} called · {{ open_pcs }} PCs open</p>
+    </div>
   </div>
 
   <div class="row g-4">
@@ -70,6 +73,9 @@
                       {% else %}
                         <span class="text-secondary">Waiting for a PC</span>
                       {% endif %}
+                      <form method="post" action="{{ url_for('delete_ticket', ticket_id=ticket.id) }}" data-confirm="Delete ticket {{ ticket.id }}? This cannot be undone.">
+                        <button class="btn btn-sm btn-outline-danger mt-2" type="submit">Delete mistaken ticket</button>
+                      </form>
                     </td>
                   </tr>
                 {% endfor %}
@@ -105,6 +111,9 @@
                 {% else %}
                   <p class="small text-secondary mb-0 mt-2">Waiting for a PC</p>
                 {% endif %}
+                <form method="post" action="{{ url_for('delete_ticket', ticket_id=ticket.id) }}" data-confirm="Delete ticket {{ ticket.id }}? This cannot be undone.">
+                  <button class="btn btn-sm btn-outline-danger mt-2" type="submit">Delete mistaken ticket</button>
+                </form>
               </article>
             {% endfor %}
           </div>
@@ -166,6 +175,15 @@
           {% endfor %}
         </div>
         <p class="form-text mb-0 mt-2">Select a station to switch it between free and busy.</p>
+        <form method="post" action="{{ url_for('station_create') }}" class="row g-2 align-items-end border-top border-warm mt-3 pt-3">
+          <div class="col-12 col-sm-7">
+            <label for="new-station-id" class="form-label fw-semibold">Add a PC station</label>
+            <input id="new-station-id" name="station_id" class="form-control" maxlength="10" pattern="PC-[0-9]{2}" placeholder="PC-05" required>
+          </div>
+          <div class="col-12 col-sm-5">
+            <button class="btn btn-outline-primary w-100" type="submit">Add PC</button>
+          </div>
+        </form>
       </section>
 
     </div>

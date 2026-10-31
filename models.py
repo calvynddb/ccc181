@@ -23,7 +23,7 @@ class Service(db.Model):
 
     id: Mapped[int] = mapped_column(Identity(always=True), primary_key=True)
     name: Mapped[str] = mapped_column(String(60), nullable=False, unique=True)
-    is_active: Mapped[bool] = mapped_column(
+    active: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=True, server_default="true"
     )
 

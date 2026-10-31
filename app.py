@@ -99,7 +99,7 @@ def all_services():
 
 def active_services():
     return db.session.scalars(
-        db.select(Service).filter_by(is_active=True).order_by(Service.name)
+        db.select(Service).filter_by(active=True).order_by(Service.name)
     ).all()
 
 
@@ -177,7 +177,7 @@ def join():
             or not 7 <= len(digits) <= 15
         ):
             errors["phone"] = "Enter a valid phone number, or leave this optional field blank."
-    if service is None or not service.is_active:
+    if service is None or not service.active:
         errors["service_id"] = "Choose an active service."
 
     if errors:
@@ -257,68 +257,147 @@ def staff_dashboard():
 @app.post("/staff/call-next")
 def call_next():
     service_id = request.form.get("service_id", type=int)
-    if service_id not in {service["id"] for service in SERVICES}:
-        service_id = SERVICES[0]["id"]
-    station_id = request.form.get("station_id", "")
-    station = next((item for item in STATIONS if item["id"] == station_id), None)
-    next_ticket = next(
-        (
-            ticket
-            for ticket in sorted(TICKETS, key=lambda item: item["number"])
-            if ticket["status"] == "waiting" and ticket["service_id"] == service_id
-        ),
-        None,
+    station_id = request.form.get("station_id", "").strip()
+    if service_id is None or db.session.get(Service, service_id) is None:
+        flash("Choose a valid service before calling the next ticket.", "warning")
+        return redirect(url_for("staff_dashboard"))
+
+    station = db.session.scalar(
+        db.select(Station).where(Station.id == station_id).with_for_update()
     )
-    if next_ticket is None:
-        flash("There are no waiting tickets for this service.", "info")
-    elif station is None or station["status"] != "free":
+    if station is None or station.status != "free":
+        db.session.rollback()
         flash("Choose a PC that is currently open.", "warning")
+        return redirect(url_for("staff_dashboard", service_id=service_id))
+
+    statement = (
+        db.select(Ticket)
+        .where(Ticket.status == "waiting", Ticket.service_id == service_id)
+        .order_by(Ticket.created_at, Ticket.id)
+        .limit(1)
+        .with_for_update(skip_locked=True)
+    )
+    next_ticket = db.session.scalar(statement)
+    if next_ticket is None:
+        db.session.rollback()
+        flash("There are no waiting tickets for this service.", "info")
     else:
-        next_ticket["status"] = "called"
-        next_ticket["station_id"] = station["id"]
-        station["status"] = "busy"
-        global AVAILABILITY_UPDATED_AT
-        AVAILABILITY_UPDATED_AT = datetime.now().astimezone()
-        flash(f"Ticket #{next_ticket['number']} called to {station['id']}.", "success")
+        called_at = datetime.now().astimezone()
+        next_ticket.status = "called"
+        next_ticket.station = station
+        next_ticket.called_at = called_at
+        next_ticket.claim_until = called_at + CLAIM_DURATION
+        station.status = "busy"
+        db.session.commit()
+        flash(f"Ticket #{next_ticket.id} called to {station.id}.", "success")
     return redirect(url_for("staff_dashboard", service_id=service_id))
 
 
 @app.post("/staff/stations/<station_id>/toggle")
 def toggle_station(station_id):
-    station = next((item for item in STATIONS if item["id"] == station_id), None)
-    if station is None:
-        abort(404)
-    station["status"] = "busy" if station["status"] == "free" else "free"
-    global AVAILABILITY_UPDATED_AT
-    AVAILABILITY_UPDATED_AT = datetime.now().astimezone()
-    flash(f"{station['id']} marked {station['status']}.", "info")
+    station = db.get_or_404(Station, station_id)
+    station.status = "busy" if station.status == "free" else "free"
+    db.session.commit()
+    flash(f"{station.id} marked {station.status}.", "info")
+    return redirect(url_for("staff_dashboard"))
+
+
+@app.post("/staff/stations")
+def station_create():
+    station_id = request.form.get("station_id", "").strip().upper()
+    if not re.fullmatch(r"PC-[0-9]{2}", station_id):
+        flash("Enter a PC ID in the format PC-05.", "danger")
+        return redirect(url_for("staff_dashboard"))
+
+    db.session.add(Station(id=station_id, status="free"))
+    try:
+        db.session.commit()
+        flash(f"{station_id} added as free.", "success")
+    except IntegrityError:
+        db.session.rollback()
+        flash(f"{station_id} already exists.", "danger")
     return redirect(url_for("staff_dashboard"))
 
 
 @app.post("/staff/tickets/<int:ticket_id>/<action>")
 def staff_action(ticket_id, action):
-    ticket = next((item for item in TICKETS if item["number"] == ticket_id), None)
-    if ticket is None or action not in ("serve", "no-show"):
+    if action not in ("serve", "no-show"):
         abort(404)
-
+    ticket = db.get_or_404(Ticket, ticket_id)
     service_id = request.form.get("service_id", type=int)
-    if action == "serve" and ticket["status"] != "called":
+    if ticket.status != "called":
         flash(f"Call ticket #{ticket_id} before marking it served.", "warning")
-    elif action == "no-show" and ticket["status"] not in ("waiting", "called", "on-hold"):
-        flash(f"Ticket #{ticket_id} is already {ticket['status']}.", "info")
     else:
-        ticket["status"] = "served" if action == "serve" else "no-show"
-        ticket["held_until"] = None
-        if action == "no-show" and ticket["station_id"]:
-            station = next(
-                (item for item in STATIONS if item["id"] == ticket["station_id"]), None
-            )
-            if station:
-                station["status"] = "free"
-                global AVAILABILITY_UPDATED_AT
-                AVAILABILITY_UPDATED_AT = datetime.now().astimezone()
-        flash(f"Ticket #{ticket_id} marked {ticket['status']}.", "info")
+        ticket.status = "served" if action == "serve" else "no-show"
+        if action == "no-show" and ticket.station is not None:
+            ticket.station.status = "free"
+        db.session.commit()
+        flash(f"Ticket #{ticket_id} marked {ticket.status}.", "info")
     return redirect(url_for("staff_dashboard", service_id=service_id))
+
+
+@app.post("/staff/tickets/<int:ticket_id>/delete")
+def delete_ticket(ticket_id):
+    ticket = db.get_or_404(Ticket, ticket_id)
+    if ticket.station is not None and ticket.status == "called":
+        ticket.station.status = "free"
+    db.session.delete(ticket)
+    db.session.commit()
+    flash(f"Ticket #{ticket_id} was deleted.", "warning")
+    return redirect(url_for("staff_dashboard"))
+
+
+@app.get("/staff/services")
+def services_list():
+    return render_template("services.html", services=all_services())
+
+
+@app.post("/staff/services")
+def service_create():
+    name = request.form.get("name", "").strip()
+    if not name or len(name) > 60:
+        flash("Enter a service name with 60 characters or fewer.", "danger")
+        return redirect(url_for("services_list"))
+
+    db.session.add(Service(name=name))
+    try:
+        db.session.commit()
+        flash(f"Service “{name}” added.", "success")
+    except IntegrityError:
+        db.session.rollback()
+        flash(f"A service named “{name}” already exists.", "danger")
+    return redirect(url_for("services_list"))
+
+
+@app.post("/staff/services/<int:service_id>/edit")
+def service_edit(service_id):
+    service = db.get_or_404(Service, service_id)
+    name = request.form.get("name", "").strip()
+    if not name or len(name) > 60:
+        flash("Enter a service name with 60 characters or fewer.", "danger")
+        return redirect(url_for("services_list"))
+
+    service.name = name
+    service.active = request.form.get("active") == "on"
+    try:
+        db.session.commit()
+        flash(f"Service “{name}” updated.", "success")
+    except IntegrityError:
+        db.session.rollback()
+        flash(f"A service named “{name}” already exists.", "danger")
+    return redirect(url_for("services_list"))
+
+
+@app.post("/staff/services/<int:service_id>/delete")
+def service_delete(service_id):
+    service = db.get_or_404(Service, service_id)
+    if service.tickets:
+        flash(f"“{service.name}” has tickets, so it cannot be deleted. Turn it off instead.", "danger")
+        return redirect(url_for("services_list"))
+    db.session.delete(service)
+    db.session.commit()
+    flash(f"Service “{service.name}” deleted.", "warning")
+    return redirect(url_for("services_list"))
 
 
 @app.route("/queue/<int:ticket_id>")
@@ -343,26 +422,17 @@ def ticket(ticket_id):
 
 @app.post("/queue/<int:ticket_id>/leave")
 def leave_queue(ticket_id):
-    current_ticket = next(
-        (ticket for ticket in TICKETS if ticket["number"] == ticket_id), None
-    )
-    if current_ticket is None:
-        abort(404)
-    if current_ticket["status"] in ("waiting", "called", "on-hold"):
-        if current_ticket["status"] == "called" and current_ticket["station_id"]:
-            station = next(
-                (item for item in STATIONS if item["id"] == current_ticket["station_id"]),
-                None,
-            )
-            if station:
-                station["status"] = "free"
-                global AVAILABILITY_UPDATED_AT
-                AVAILABILITY_UPDATED_AT = datetime.now().astimezone()
-        current_ticket["status"] = "no-show"
-        current_ticket["held_until"] = None
+    current_ticket = db.get_or_404(Ticket, ticket_id)
+    if current_ticket.status in ("waiting", "called", "on-hold"):
+        if current_ticket.status == "called" and current_ticket.station is not None:
+            current_ticket.station.status = "free"
+        current_ticket.status = "left"
+        current_ticket.held_until = None
+        current_ticket.left_at = datetime.now().astimezone()
+        db.session.commit()
         flash(f"Ticket #{ticket_id} has left the queue.", "info")
     else:
-        flash(f"Ticket #{ticket_id} is already {current_ticket['status']}.", "info")
+        flash(f"Ticket #{ticket_id} is already {current_ticket.status}.", "info")
     if session.get("current_ticket_id") == ticket_id:
         session.pop("current_ticket_id", None)
     return redirect(url_for("index"))
@@ -370,12 +440,11 @@ def leave_queue(ticket_id):
 
 @app.post("/queue/<int:ticket_id>/hold")
 def hold_queue_place(ticket_id):
-    current_ticket = next((item for item in TICKETS if item["number"] == ticket_id), None)
-    if current_ticket is None:
-        abort(404)
-    if current_ticket["status"] == "waiting":
-        current_ticket["status"] = "on-hold"
-        current_ticket["held_until"] = datetime.now().astimezone() + HOLD_DURATION
+    current_ticket = db.get_or_404(Ticket, ticket_id)
+    if current_ticket.status == "waiting":
+        current_ticket.status = "on-hold"
+        current_ticket.held_until = datetime.now().astimezone() + HOLD_DURATION
+        db.session.commit()
         flash("Your place is on hold for 10 minutes. Resume before it expires to keep your ticket order.", "info")
     else:
         flash("Only a waiting ticket can be put on hold.", "warning")
@@ -384,12 +453,11 @@ def hold_queue_place(ticket_id):
 
 @app.post("/queue/<int:ticket_id>/resume")
 def resume_queue_place(ticket_id):
-    current_ticket = next((item for item in TICKETS if item["number"] == ticket_id), None)
-    if current_ticket is None:
-        abort(404)
-    if current_ticket["status"] == "on-hold":
-        current_ticket["status"] = "waiting"
-        current_ticket["held_until"] = None
+    current_ticket = db.get_or_404(Ticket, ticket_id)
+    if current_ticket.status == "on-hold":
+        current_ticket.status = "waiting"
+        current_ticket.held_until = None
+        db.session.commit()
         flash("Your place is back in the queue in its original ticket order.", "success")
     else:
         flash("This ticket is no longer on hold.", "info")
