@@ -1,6 +1,6 @@
 """Mito: a simple queue for individual PC sessions at Arena in Tibanga."""
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import os
 import re
 import sys
@@ -18,7 +18,7 @@ from flask import (
 )
 from flask_migrate import Migrate
 from models import Service, Station, Ticket, db
-from sqlalchemy import func
+from sqlalchemy import and_, func, or_
 from sqlalchemy.exc import IntegrityError
 
 if sys.version_info.releaselevel != "final":
@@ -39,13 +39,9 @@ app.config["SQLALCHEMY_ECHO"] = os.environ.get("SQLALCHEMY_ECHO") == "1"
 db.init_app(app)
 migrate = Migrate(app, db)
 
-STATIONS = [
-    {"id": "PC-01", "status": "free"},
-    {"id": "PC-02", "status": "busy"},
-    {"id": "PC-03", "status": "free"},
-    {"id": "PC-04", "status": "free"},
-]
 HOLD_DURATION = timedelta(minutes=10)
+CLAIM_DURATION = timedelta(minutes=5)
+PH_TIME = timezone(timedelta(hours=8))
 
 
 @app.cli.command("seed")
@@ -81,7 +77,19 @@ def expire_ticket_holds():
         ticket.status = "no-show"
         ticket.held_until = None
         ticket.hold_expired = True
-    if expired_tickets:
+
+    expired_calls = db.session.scalars(
+        db.select(Ticket).where(
+            Ticket.status == "called",
+            Ticket.claim_until <= now,
+        )
+    ).all()
+    for ticket in expired_calls:
+        ticket.status = "no-show"
+        if ticket.station is not None:
+            ticket.station.status = "free"
+
+    if expired_tickets or expired_calls:
         db.session.commit()
 
 
@@ -102,6 +110,30 @@ def station_availability():
     station_count = db.session.scalar(db.select(func.count()).select_from(Station))
     updated_at = db.session.scalar(db.select(func.max(Station.updated_at)))
     return open_pcs or 0, station_count or 0, updated_at or datetime.now().astimezone()
+
+
+def people_ahead(ticket):
+    """Count earlier waiting tickets for the same service."""
+    earlier = or_(
+        Ticket.created_at < ticket.created_at,
+        and_(Ticket.created_at == ticket.created_at, Ticket.id < ticket.id),
+    )
+    statement = (
+        db.select(func.count())
+        .select_from(Ticket)
+        .where(
+            Ticket.service_id == ticket.service_id,
+            Ticket.status == "waiting",
+            earlier,
+        )
+    )
+    return db.session.scalar(statement)
+
+
+@app.template_filter("local")
+def local_time(value):
+    """Show a database time in Philippine time."""
+    return value.astimezone(PH_TIME).strftime("%b %d, %I:%M %p") if value else ""
 
 
 @app.route("/")
@@ -190,34 +222,35 @@ def join():
 @app.get("/staff")
 def staff_dashboard():
     service_id = request.args.get("service_id", type=int)
-    valid_service_ids = {service["id"] for service in SERVICES}
-    if service_id not in valid_service_ids:
+    if service_id and db.session.get(Service, service_id) is None:
         service_id = None
 
-    queue = [
-        ticket
-        for ticket in TICKETS
-        if ticket["status"] in ("waiting", "called", "on-hold")
-        and (service_id is None or ticket["service_id"] == service_id)
-    ]
-    queue.sort(key=lambda ticket: ticket["number"])
-    names = {service["id"]: service["name"] for service in SERVICES}
-    next_ticket = next((ticket for ticket in queue if ticket["status"] == "waiting"), None)
-    free_stations = [station for station in STATIONS if station["status"] == "free"]
+    statement = (
+        db.select(Ticket)
+        .where(Ticket.status.in_(("waiting", "called", "on-hold")))
+        .order_by(Ticket.created_at, Ticket.id)
+    )
+    if service_id:
+        statement = statement.where(Ticket.service_id == service_id)
+    queue = db.session.scalars(statement).all()
+    services = all_services()
+    next_ticket = next((ticket for ticket in queue if ticket.status == "waiting"), None)
+    stations = db.session.scalars(db.select(Station).order_by(Station.id)).all()
+    free_stations = [station for station in stations if station.status == "free"]
+    updated_at = db.session.scalar(db.select(func.max(Station.updated_at)))
     return render_template(
         "staff.html",
         queue=queue,
-        services=SERVICES,
-        names=names,
+        services=services,
         selected=service_id,
         next_ticket=next_ticket,
         free_stations=free_stations,
-        stations=STATIONS,
+        stations=stations,
         open_pcs=len(free_stations),
-        waiting_count=sum(ticket["status"] == "waiting" for ticket in queue),
-        called_count=sum(ticket["status"] == "called" for ticket in queue),
-        held_count=sum(ticket["status"] == "on-hold" for ticket in queue),
-        updated_at=AVAILABILITY_UPDATED_AT,
+        waiting_count=sum(ticket.status == "waiting" for ticket in queue),
+        called_count=sum(ticket.status == "called" for ticket in queue),
+        held_count=sum(ticket.status == "on-hold" for ticket in queue),
+        updated_at=updated_at or datetime.now().astimezone(),
     )
 
 
@@ -290,27 +323,12 @@ def staff_action(ticket_id, action):
 
 @app.route("/queue/<int:ticket_id>")
 def ticket(ticket_id):
-    current_ticket = next(
-        (ticket for ticket in TICKETS if ticket["number"] == ticket_id), None
-    )
-    if current_ticket is None:
-        abort(404)
-
-    ahead = sum(
-        1
-        for other in TICKETS
-        if other["service_id"] == current_ticket["service_id"]
-        and other["status"] == "waiting"
-        and other["number"] < current_ticket["number"]
-    )
-    service = next(
-        service for service in SERVICES if service["id"] == current_ticket["service_id"]
-    )
+    current_ticket = db.get_or_404(Ticket, ticket_id)
     return render_template(
         "ticket.html",
         ticket=current_ticket,
-        service=service,
-        ahead=ahead,
+        service=current_ticket.service,
+        ahead=people_ahead(current_ticket),
         status_classes={
             "waiting": "text-bg-warning",
             "on-hold": "text-bg-info",
@@ -318,8 +336,8 @@ def ticket(ticket_id):
             "served": "text-bg-secondary",
             "no-show": "text-bg-danger",
         },
-        held_until=current_ticket["held_until"].strftime("%I:%M %p") if current_ticket["held_until"] else None,
-        hold_expired=current_ticket["hold_expired"],
+        held_until=current_ticket.held_until,
+        hold_expired=current_ticket.hold_expired,
     )
 
 
@@ -380,24 +398,15 @@ def resume_queue_place(ticket_id):
 
 @app.get("/queue/<int:ticket_id>/status.json")
 def ticket_status(ticket_id):
-    current_ticket = next(
-        (ticket for ticket in TICKETS if ticket["number"] == ticket_id), None
-    )
-    if current_ticket is None:
-        abort(404)
-    ahead = sum(
-        1
-        for other in TICKETS
-        if other["service_id"] == current_ticket["service_id"]
-        and other["status"] == "waiting"
-        and other["number"] < current_ticket["number"]
-    )
+    current_ticket = db.get_or_404(Ticket, ticket_id)
     return {
-        "status": current_ticket["status"],
-        "ahead": ahead,
-        "station_id": current_ticket["station_id"],
-        "held_until": current_ticket["held_until"].strftime("%I:%M %p") if current_ticket["held_until"] else None,
-        "hold_expired": current_ticket["hold_expired"],
+        "status": current_ticket.status,
+        "ahead": people_ahead(current_ticket),
+        "station_id": current_ticket.station_id,
+        "held_until": local_time(current_ticket.held_until),
+        "claim_until": local_time(current_ticket.claim_until),
+        "hold_expired": current_ticket.hold_expired,
+        "was_called": current_ticket.called_at is not None,
     }
 
 

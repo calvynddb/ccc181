@@ -8,6 +8,7 @@
     <p class="eyebrow mb-2">Your place in line</p>
     <h1 class="h2 fw-bold mb-1">My place</h1>
     <p class="text-secondary mb-0">One player · {{ service.name }}</p>
+    <p class="small text-secondary mb-0 mt-2">Joined {{ ticket.created_at|local }}</p>
   </header>
 
   <div class="row g-4 g-lg-5 align-items-stretch">
@@ -28,13 +29,13 @@
               {% if ahead == 0 %}You're next!{% else %}{{ ahead }} {{ 'person' if ahead == 1 else 'people' }} ahead of you{% endif %}
             </p>
           {% elif ticket.status == "called" %}
-            <p id="ticket-position" data-status="called" class="h4 fw-semibold mb-0">Your PC is ready{% if ticket.station_id %}: {{ ticket.station_id }}{% endif %}</p>
+            <p id="ticket-position" data-status="called" class="h4 fw-semibold mb-0">Your PC is ready{% if ticket.station_id %}: {{ ticket.station_id }}{% endif %}. Please arrive by {{ ticket.claim_until|local }}. If you miss this deadline, your ticket becomes no-show and the PC is released.</p>
           {% elif ticket.status == "on-hold" %}
-            <p id="ticket-position" data-status="on-hold" class="h4 fw-semibold mb-2">Your place is on hold until {{ held_until }}.</p>
+            <p id="ticket-position" data-status="on-hold" class="h4 fw-semibold mb-2">Your place is on hold until {{ held_until|local }}.</p>
           {% elif ticket.status == "served" %}
             <p id="ticket-position" data-status="served" class="h4 fw-semibold mb-0">Your session has started{% if ticket.station_id %} at {{ ticket.station_id }}{% endif %}</p>
           {% else %}
-            <p id="ticket-position" data-status="no-show" class="h4 fw-semibold mb-0">{% if hold_expired %}Your 10-minute hold expired. Join again when you're ready.{% else %}This ticket is no longer in the queue.{% endif %}</p>
+            <p id="ticket-position" data-status="no-show" class="h4 fw-semibold mb-0">{% if hold_expired %}Your 10-minute hold expired. Join again when you're ready.{% elif ticket.called_at %}Your response deadline passed or staff marked this ticket no-show. The assigned PC has been released.{% else %}This ticket is no longer in the queue.{% endif %}</p>
           {% endif %}
       </div>
       <p id="hold-note" class="workflow-note p-3 mb-4" {% if ticket.status != "on-hold" %}hidden{% endif %}>Staff can call other ready tickets while you pause. Resume before the hold expires to return to your original ticket order.</p>

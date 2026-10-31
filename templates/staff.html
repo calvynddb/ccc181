@@ -40,6 +40,7 @@
                   <th scope="col">Service</th>
                   <th scope="col">Status</th>
                   <th scope="col">PC</th>
+                  <th scope="col">Joined</th>
                   <th scope="col">Actions</th>
                 </tr>
               </thead>
@@ -48,9 +49,10 @@
                   <tr>
                     <th scope="row">#{{ ticket.id }}</th>
                     <td>{{ ticket.nickname }}</td>
-                    <td>{{ names[ticket.service_id] }}</td>
-                    <td>{% if ticket.status == 'on-hold' %}On hold until {{ ticket.held_until.strftime("%I:%M %p") }}{% else %}{{ ticket.status }}{% endif %}</td>
+                    <td>{{ ticket.service.name }}</td>
+                    <td>{% if ticket.status == 'on-hold' %}On hold until {{ ticket.held_until|local }}{% else %}{{ ticket.status }}{% endif %}</td>
                     <td>{{ ticket.station_id or '—' }}</td>
+                    <td>{{ ticket.created_at|local }}</td>
                     <td>
                       {% if ticket.status == 'called' %}
                         <div class="d-flex flex-wrap gap-2">
@@ -80,12 +82,12 @@
                 <div class="d-flex align-items-start justify-content-between gap-3 mb-2">
                   <div>
                     <h3 class="h5 fw-bold mb-1"><span class="font-mono">#{{ ticket.id }}</span> · {{ ticket.nickname }}</h3>
-                    <p class="small text-secondary mb-0">{{ names[ticket.service_id] }} · PC {{ ticket.station_id or 'not assigned' }}</p>
+                    <p class="small text-secondary mb-0">{{ ticket.service.name }} · PC {{ ticket.station_id or 'not assigned' }} · Joined {{ ticket.created_at|local }}</p>
                   </div>
                   <span class="badge {{ 'text-bg-warning' if ticket.status == 'waiting' else ('text-bg-info' if ticket.status == 'on-hold' else 'text-bg-primary') }}">{{ ticket.status }}</span>
                 </div>
                 {% if ticket.status == 'on-hold' %}
-                  <p class="small text-secondary mb-0">On hold until {{ ticket.held_until.strftime("%I:%M %p") }} · PC not reserved</p>
+                  <p class="small text-secondary mb-0">On hold until {{ ticket.held_until|local }} · PC not reserved</p>
                 {% endif %}
                 {% if ticket.status == 'called' %}
                   <div class="d-flex flex-wrap gap-2 mt-3">
@@ -120,7 +122,7 @@
         {% if next_ticket %}
           <p class="eyebrow mb-2">Next in order</p>
           <h2 id="call-title" class="h4 fw-bold">#{{ next_ticket.id }} · {{ next_ticket.nickname }}</h2>
-          <p>One PC session</p>
+          <p>{{ next_ticket.service.name }}</p>
           {% if free_stations %}
             <form method="post" action="{{ url_for('call_next') }}">
               <input type="hidden" name="service_id" value="{{ selected or services[0].id }}">
@@ -146,7 +148,7 @@
         <div class="d-flex justify-content-between align-items-start gap-2 mb-3">
           <div>
             <h2 id="stations-title" class="h4 fw-bold mb-1">PC availability</h2>
-            <p class="small text-secondary mb-0">Updated {{ updated_at.strftime("%I:%M %p") }}</p>
+            <p class="small text-secondary mb-0">Updated {{ updated_at|local }}</p>
           </div>
           <span class="badge text-bg-success fs-6">{{ open_pcs }} open</span>
         </div>

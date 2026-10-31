@@ -9,7 +9,7 @@
       <h1 class="display-5 fw-bold mb-1">Join the queue</h1>
       <p class="text-secondary mb-0">Get in line for one PC session.</p>
     </div>
-    <p class="small text-secondary mb-1">Updated <strong class="text-dark">{{ updated_at.strftime("%I:%M %p") }}</strong></p>
+    <p class="small text-secondary mb-1">Updated <strong class="text-dark">{{ updated_at|local }}</strong></p>
   </header>
 
   <div class="row g-4 g-lg-5">
