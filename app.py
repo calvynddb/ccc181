@@ -73,6 +73,26 @@ TICKETS = [
 HOLD_DURATION = timedelta(minutes=10)
 
 
+@app.cli.command("seed")
+def seed():
+    """Add Mito's starting service and PC stations if they are not there yet."""
+    if db.session.scalar(db.select(Service).filter_by(name="PC session")) is None:
+        db.session.add(Service(name="PC session"))
+
+    starting_stations = [
+        ("PC-01", "free"),
+        ("PC-02", "busy"),
+        ("PC-03", "free"),
+        ("PC-04", "free"),
+    ]
+    for station_id, status in starting_stations:
+        if db.session.get(Station, station_id) is None:
+            db.session.add(Station(id=station_id, status=status))
+
+    db.session.commit()
+    print("Mito's service and stations are ready.")
+
+
 @app.before_request
 def expire_ticket_holds():
     now = datetime.now().astimezone()
