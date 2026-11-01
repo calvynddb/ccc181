@@ -5,10 +5,10 @@
 - **App:** Mito
 - **Setting:** Internet cafés such as Arena
 - **Student:** Calvyn Kent L. Adeva
-- **Student ID:** 20240064
+- **Student ID:** 2024-0064
 - **Section:** CS3B
 - **Date:** November 1, 2026
-- **Pull request:** Not opened yet; add the link after opening the Week 4 pull request.
+- **Pull request:** [Week 4: PostgreSQL persistence for Mito (#5)](https://github.com/calvynddb/ccc181/pull/5)
 
 ## Requirements
 
