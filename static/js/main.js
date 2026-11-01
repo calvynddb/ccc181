@@ -9,6 +9,12 @@ if (joinForm) {
   });
 }
 
+document.querySelectorAll("form[data-confirm]").forEach((form) => {
+  form.addEventListener("submit", (event) => {
+    if (!confirm(form.dataset.confirm)) event.preventDefault();
+  });
+});
+
 const liveStatus = document.getElementById("live-status");
 if (liveStatus) {
   const statusUrl = liveStatus.dataset.statusUrl;
@@ -42,15 +48,19 @@ if (liveStatus) {
           ? "You're next!"
           : `${data.ahead} ${data.ahead === 1 ? "person" : "people"} ahead of you`;
       } else if (data.status === "called") {
-        position.textContent = `Your PC is ready${data.station_id ? `: ${data.station_id}` : ""}`;
+        position.textContent = `Your PC is ready${data.station_id ? `: ${data.station_id}` : ""}. Please arrive by ${data.claim_until}. If you miss this deadline, your ticket becomes no-show and the PC is released.`;
       } else if (data.status === "on-hold") {
         position.textContent = `Your place is on hold until ${data.held_until}.`;
       } else if (data.status === "served") {
         position.textContent = `Your session has started${data.station_id ? ` at ${data.station_id}` : ""}`;
       } else {
-        position.textContent = data.hold_expired
-          ? "Your 10-minute hold expired. Join again when you're ready."
-          : "This ticket is no longer in the queue.";
+        if (data.hold_expired) {
+          position.textContent = "Your 10-minute hold expired. Join again when you're ready.";
+        } else if (data.was_called) {
+          position.textContent = "Your response deadline passed or staff marked this ticket no-show. The assigned PC has been released.";
+        } else {
+          position.textContent = "This ticket is no longer in the queue.";
+        }
       }
 
       if (leaveAction) {
