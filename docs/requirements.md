@@ -40,7 +40,7 @@ FR-15 is a Week 4 addition to make the call outcome clearer for customers who ma
 | NFR-03 | No database password or Flask secret key is tracked in Git. | Security | Must |
 | NFR-04 | At 375px viewport width, Join, My place and Staff have no horizontal page scrolling. | Responsive design | Should |
 | NFR-05 | A keyboard-only user can complete Join and the Staff filter, Call next and Serve flow with visible keyboard focus. | Accessibility | Must |
-| NFR-06 | Invalid nickname, phone, ticket status and station data are rejected at the browser, Flask and database layers. | Data integrity | Must |
+| NFR-06 | A malformed Join request is rejected by Flask without saving a ticket, and PostgreSQL constraints reject invalid ticket data. | Data integrity | Must |
 
 ## MVP
 

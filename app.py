@@ -32,7 +32,7 @@ if sys.version_info < (3, 11):
 load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = "dev-only-change-me"
+app.secret_key = os.environ.get("SECRET_KEY") or os.urandom(32)
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ["DATABASE_URL"]
 app.config["SQLALCHEMY_ECHO"] = os.environ.get("SQLALCHEMY_ECHO") == "1"
 
