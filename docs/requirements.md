@@ -20,7 +20,7 @@
 | FR-06 ★ | A customer with a waiting ticket can hold their place for 10 minutes and resume in their original ticket order before the hold expires. | Must | Yes | Built (Week 3) |
 | FR-07 | A customer can leave the queue, and their ticket is removed from the active queue while its departure status is retained. | Must | Yes | Built (Week 3) |
 | FR-08 ★ | Staff can add and rename a PC type and deactivate it when it is no longer offered. | Must | Yes | Built (Week 4) |
-| FR-09 | Staff can permanently delete a ticket that was created by mistake. | Must | Yes | This week |
+| FR-09 | Staff can permanently delete a ticket that was created by mistake. | Must | Yes | Built (Week 4) |
 | FR-10 ★ | When staff call a customer, My place can show the assigned PC highlighted on a floor map with its floor and position relative to nearby PCs. | Could | Yes | Later |
 | FR-11 | A customer viewing Join sees PC availability and its last-updated time refresh automatically while the page is open. | Should | No | Later |
 | FR-12 | Staff see queue and PC availability updates automatically while the dashboard is open, without losing their PC type filter or an unsubmitted PC selection. | Should | No | Later |

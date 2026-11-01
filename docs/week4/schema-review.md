@@ -1,6 +1,6 @@
 # Week 4 schema review
 
-This is a static review of the ERD and schema against ten queue scenarios. It checks the documented data model and current Mito behavior; these scenarios were reasoned through, not executed as runtime tests.
+I reviewed the ERD and schema against ten queue scenarios. This is a design review of the data model and Mito's expected behavior; I reasoned through the scenarios rather than running them as runtime tests.
 
 ## Ten scenarios
 

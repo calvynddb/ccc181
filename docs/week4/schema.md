@@ -1,6 +1,6 @@
 # Mito database schema
 
-This draft maps the Week 4 requirements to a PostgreSQL schema for Mito. It stores tickets, PC types, and stations. `services` is the existing table name for the Standard PC and VIP PC types; each station and ticket refers to its type. The seed creates PC-01 through PC-08 as Standard PCs and PC-09 through PC-12 as VIP PCs. It does not store the queue itself, the number of people ahead, or open-PC counts because those are calculated from stored rows. FR-14 (a numeric wait estimate) is dropped because PC sessions can be extended indefinitely.
+I mapped the Week 4 requirements to a PostgreSQL schema for Mito with three tables: tickets, PC types, and stations. `services` is the existing table name for PC types; each station and ticket refers to its type. The seed creates PC-01 through PC-08 as Standard PCs and PC-09 through PC-12 as VIP PCs. I calculate queue position and open-PC counts from stored rows instead of storing duplicate values. I dropped FR-14, the numeric wait estimate, because customers can extend PC sessions indefinitely.
 
 ## 2a. Requirement nouns
 
