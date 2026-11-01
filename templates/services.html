@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Manage services · Mito{% endblock %}
+{% block title %}Manage PC types · Mito{% endblock %}
 
 {% block content %}
 <section class="mx-auto" style="max-width: 1100px">
@@ -7,28 +7,28 @@
     <p class="eyebrow mb-2">Arena · Operations</p>
     <div class="d-flex flex-wrap justify-content-between align-items-end gap-3">
       <div>
-        <h1 class="display-5 fw-bold mb-1">Manage services</h1>
-        <p class="text-secondary mb-0">Active services appear on the Join form. Deactivate a service to stop new tickets without removing its history.</p>
+        <h1 class="display-5 fw-bold mb-1">Manage PC types</h1>
+        <p class="text-secondary mb-0">Active PC types appear on Join. Stations and tickets stay linked to their type so staff only assign matching PCs.</p>
       </div>
       <a class="btn btn-outline-primary" href="{{ url_for('staff_dashboard') }}">Back to staff dashboard</a>
     </div>
   </header>
 
   <section class="surface-card p-3 p-lg-4 mb-4" aria-labelledby="add-service-title">
-    <h2 id="add-service-title" class="h4 fw-bold mb-3">Add a service</h2>
+    <h2 id="add-service-title" class="h4 fw-bold mb-3">Add a PC type</h2>
     <form method="post" action="{{ url_for('service_create') }}" class="row g-3 align-items-end">
       <div class="col-12 col-md-8">
-        <label for="new-service-name" class="form-label fw-semibold">Service name</label>
+        <label for="new-service-name" class="form-label fw-semibold">PC type name</label>
         <input id="new-service-name" name="name" class="form-control" maxlength="60" required>
       </div>
       <div class="col-12 col-md-4">
-        <button class="btn btn-primary w-100" type="submit">Add service</button>
+        <button class="btn btn-primary w-100" type="submit">Add PC type</button>
       </div>
     </form>
   </section>
 
   <section class="surface-card p-3 p-lg-4" aria-labelledby="services-title">
-    <h2 id="services-title" class="h4 fw-bold mb-3">Current services</h2>
+    <h2 id="services-title" class="h4 fw-bold mb-3">Current PC types</h2>
     {% if services %}
       <div class="d-grid gap-3">
         {% for service in services %}
@@ -37,10 +37,10 @@
               <h3 class="h5 fw-bold mb-0">{{ service.name }}</h3>
               <span class="badge {{ 'text-bg-success' if service.active else 'text-bg-secondary' }}">{{ 'Active' if service.active else 'Inactive' }}</span>
             </div>
-            <p class="small text-secondary">{{ service.tickets|length }} ticket{% if service.tickets|length != 1 %}s{% endif %} in history</p>
+            <p class="small text-secondary">{{ service.stations|length }} PC{% if service.stations|length != 1 %}s{% endif %} · {{ service.tickets|length }} ticket{% if service.tickets|length != 1 %}s{% endif %} in history</p>
             <form method="post" action="{{ url_for('service_edit', service_id=service.id) }}" class="row g-3 align-items-end mb-3">
               <div class="col-12 col-lg-6">
-                <label for="service-name-{{ service.id }}" class="form-label fw-semibold">Service name</label>
+                <label for="service-name-{{ service.id }}" class="form-label fw-semibold">PC type name</label>
                 <input id="service-name-{{ service.id }}" name="name" class="form-control" maxlength="60" value="{{ service.name }}" required>
               </div>
               <div class="col-12 col-lg-3">
@@ -53,18 +53,18 @@
                 <button class="btn btn-outline-primary w-100" type="submit">Save changes</button>
               </div>
             </form>
-            {% if service.tickets %}
-              <p class="small text-secondary mb-0">This service has ticket history and cannot be deleted. Deactivate it to stop new joins.</p>
+            {% if service.tickets or service.stations %}
+              <p class="small text-secondary mb-0">This PC type has linked tickets or stations and cannot be deleted. Deactivate it to stop new joins.</p>
             {% else %}
               <form method="post" action="{{ url_for('service_delete', service_id=service.id) }}" data-confirm="Delete {{ service.name }}? This cannot be undone.">
-                <button class="btn btn-outline-danger" type="submit">Delete service</button>
+                <button class="btn btn-outline-danger" type="submit">Delete PC type</button>
               </form>
             {% endif %}
           </article>
         {% endfor %}
       </div>
     {% else %}
-      <p class="mb-0 text-secondary">No services have been added yet.</p>
+      <p class="mb-0 text-secondary">No PC types have been added yet.</p>
     {% endif %}
   </section>
 </section>

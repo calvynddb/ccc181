@@ -12,24 +12,24 @@
 
 | ID | Requirement | Priority | Stores data? | Status |
 | --- | --- | --- | --- | --- |
-| FR-01 ★ | A customer can join the queue for one PC session using a nickname and an optional phone number. | Must | Yes | Built (Week 3) |
+| FR-01 ★ | A customer can join the queue for one PC using a nickname, an optional phone number, and a selected PC type (Standard or VIP). | Must | Yes | Built (Week 4) |
 | FR-02 | A customer can see their ticket number, current status and number of waiting tickets ahead of them. | Must | Yes | Built (Week 3) |
-| FR-03 ★ | A customer can see how many PCs are open and when that availability was last updated. | Must | Yes | Built (Week 3) |
-| FR-04 ★ | Staff can view tickets in order, assign an open PC to the oldest waiting customer, call that customer, and mark a called ticket served or no-show. | Must | Yes | Built (Week 3) |
+| FR-03 ★ | A customer can see how many Standard and VIP PCs are open and when that availability was last updated. | Must | Yes | Built (Week 4) |
+| FR-04 ★ | Staff can view tickets in order, assign a free PC of the matching type to the oldest waiting customer in that type's queue, call that customer, and mark a called ticket served or no-show. | Must | Yes | Built (Week 4) |
 | FR-05 ★ | Staff can mark each PC free or busy, and Mito calculates the open-PC count from those station states. | Must | Yes | Built (Week 3) |
 | FR-06 ★ | A customer with a waiting ticket can hold their place for 10 minutes and resume in their original ticket order before the hold expires. | Must | Yes | Built (Week 3) |
 | FR-07 | A customer can leave the queue, and their ticket is removed from the active queue while its departure status is retained. | Must | Yes | Built (Week 3) |
-| FR-08 ★ | Staff can add and rename a queue service and deactivate it when it is no longer offered. | Must | Yes | This week |
+| FR-08 ★ | Staff can add and rename a PC type and deactivate it when it is no longer offered. | Must | Yes | Built (Week 4) |
 | FR-09 | Staff can permanently delete a ticket that was created by mistake. | Must | Yes | This week |
 | FR-10 ★ | When staff call a customer, My place can show the assigned PC highlighted on a floor map with its floor and position relative to nearby PCs. | Could | Yes | Later |
 | FR-11 | A customer viewing Join sees PC availability and its last-updated time refresh automatically while the page is open. | Should | No | Later |
-| FR-12 | Staff see queue and PC availability updates automatically while the dashboard is open, without losing their service filter or an unsubmitted PC selection. | Should | No | Later |
-| FR-13 | Staff can review how many customers leave before being served, grouped by service and day. | Could | Yes | Later |
+| FR-12 | Staff see queue and PC availability updates automatically while the dashboard is open, without losing their PC type filter or an unsubmitted PC selection. | Should | No | Later |
+| FR-13 | Staff can review how many customers leave before being served, grouped by PC type and day. | Could | Yes | Later |
 | FR-14 ★ | Before deciding to come to the café, a customer can see a clearly labeled rough wait estimate. | Won't (this semester) | No | Dropped |
-| FR-15 ★ | After staff assigns a PC and calls a customer, My place shows the exact five-minute response deadline and explains that missing it changes the ticket to no-show and releases the PC. | Should | Yes | This week |
-| FR-16 ★ | Staff can add a PC station with a unique PC ID, and Mito includes it in the availability count and dashboard. | Should | Yes | This week |
+| FR-15 ★ | After staff assigns a PC and calls a customer, My place shows the exact five-minute response deadline and explains that missing it changes the ticket to no-show and releases the PC. | Should | Yes | Built (Week 4) |
+| FR-16 ★ | Staff can add a PC station with a unique PC ID and PC type, and Mito includes it in the matching availability count and dashboard. | Should | Yes | Built (Week 4) |
 
-FR-15 is a Week 4 addition to make the call outcome clearer for customers who may be away from the café. It has not yet been checked with the person who reviewed the original requirements. The five-minute duration follows the existing Mito design draft; the current Flask implementation does not yet enforce a call deadline.
+FR-15 is a Week 4 addition to make the call outcome clearer for customers who may be away from the café. It has not yet been checked with the person who reviewed the original requirements. The five-minute duration follows the existing Mito design draft; Mito stores the deadline at call time and expires the call when the ticket page or another app request processes it.
 
 ## Non-functional requirements
 
@@ -44,7 +44,7 @@ FR-15 is a Week 4 addition to make the call outcome clearer for customers who ma
 
 ## MVP
 
-**MVP:** FR-01 through FR-09 and NFR-01 through NFR-03, plus NFR-05 and NFR-06. These cover joining and tracking an individual ticket, staff-managed PCs and queue actions, the service data needed by the app, and reliable storage. FR-10 through FR-13 are planned improvements rather than requirements for the Week 4 MVP. FR-14 is dropped because Mito cannot make a credible wait-time estimate from the information the café tracks.
+**MVP:** FR-01 through FR-09 and NFR-01 through NFR-03, plus NFR-05 and NFR-06. These cover joining and tracking an individual ticket, staff-managed PCs and queue actions, PC type data needed by the app, and reliable storage. FR-10 through FR-13 are planned improvements rather than requirements for the Week 4 MVP. FR-14 is dropped because Mito cannot make a credible wait-time estimate from the information the café tracks.
 
 **Out of scope:** Customer accounts and online payments are out of scope because Mito only needs a nickname and optional phone number to manage the queue. Automatic PC detection and automatic PC assignment are also out of scope because staff at the café determine which stations are actually available and assign a specific PC before calling a customer. Staff login is deferred to the later security work identified in the Week 4 assignment.
 

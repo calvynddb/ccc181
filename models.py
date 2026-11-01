@@ -28,6 +28,7 @@ class Service(db.Model):
     )
 
     tickets: Mapped[list["Ticket"]] = relationship(back_populates="service")
+    stations: Mapped[list["Station"]] = relationship(back_populates="service")
 
     __table_args__ = (
         CheckConstraint("btrim(name) <> ''", name="ck_services_name_not_blank"),
@@ -41,6 +42,13 @@ class Station(db.Model):
     status: Mapped[str] = mapped_column(
         String(10), nullable=False, default="free", server_default="free"
     )
+    service_id: Mapped[int | None] = mapped_column(
+        ForeignKey(
+            "services.id",
+            ondelete="RESTRICT",
+            name="fk_stations_service_id_services",
+        )
+    )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
     )
@@ -49,6 +57,7 @@ class Station(db.Model):
     map_y: Mapped[Decimal | None] = mapped_column(Numeric(5, 2))
 
     tickets: Mapped[list["Ticket"]] = relationship(back_populates="station")
+    service: Mapped["Service | None"] = relationship(back_populates="stations")
 
     __table_args__ = (
         CheckConstraint("id ~ '^PC-[0-9]{2}$'", name="ck_stations_id_format"),

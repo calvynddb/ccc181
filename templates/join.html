@@ -7,7 +7,7 @@
     <div>
       <p class="eyebrow mb-2">Arena · Tibanga</p>
       <h1 class="display-5 fw-bold mb-1">Join the queue</h1>
-      <p class="text-secondary mb-0">Get in line for one PC session.</p>
+      <p class="text-secondary mb-0">Choose a Standard or VIP PC and join its queue.</p>
     </div>
     <p class="small text-secondary mb-1">Updated <strong class="text-dark">{{ updated_at|local }}</strong></p>
   </header>
@@ -16,12 +16,19 @@
     <aside class="col-12 col-lg-5">
       <section class="availability-card p-4 p-lg-5 mb-3" aria-labelledby="availability-title">
         <p class="eyebrow mb-3">PC availability</p>
-        <h2 id="availability-title" class="display-1 fw-bold font-mono mb-2">{{ open_pcs }}</h2>
-        <p class="h5 fw-semibold mb-0">of {{ station_count }} PCs open</p>
+        <h2 id="availability-title" class="h4 fw-bold mb-3">Open PCs by type</h2>
+        <div class="d-grid gap-2">
+          {% for pc_type in open_pcs_by_type %}
+            <p class="d-flex justify-content-between mb-0"><span>{{ pc_type.name }}</span><strong>{{ pc_type.open_count }} open</strong></p>
+          {% else %}
+            <p class="mb-0">No PC types are available.</p>
+          {% endfor %}
+        </div>
+        <p class="small text-secondary mt-3 mb-0">{{ open_pcs }} of {{ station_count }} PCs open overall</p>
       </section>
       <div class="surface-card p-4">
         <h2 class="eyebrow text-dark mb-2">How it works</h2>
-        <p class="mb-0 text-secondary">Check open PCs before heading over. Staff update availability, assign a PC, and call tickets in order.</p>
+        <p class="mb-0 text-secondary">Choose Standard or VIP. Staff update PC availability, assign a matching PC, and call tickets in order.</p>
       </div>
     </aside>
 
@@ -43,14 +50,14 @@
           </div>
 
           <div class="mb-3">
-            <label for="service_id" class="form-label fw-semibold">Service</label>
+            <label for="service_id" class="form-label fw-semibold">PC type</label>
             <select id="service_id" name="service_id" required
                     class="form-select form-select-lg {% if errors.service_id %}is-invalid{% endif %}"
                     {% if errors.service_id %}aria-describedby="service-error"{% endif %}>
               {% for service in services %}
                 <option value="{{ service.id }}" {% if form.get('service_id', '')|string == service.id|string %}selected{% endif %}>{{ service.name }}</option>
               {% else %}
-                <option value="" selected disabled>No services are available</option>
+                <option value="" selected disabled>No PC types are available</option>
               {% endfor %}
             </select>
             {% if errors.service_id %}
